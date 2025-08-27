@@ -2,15 +2,11 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertDiagnosisSchema, insertHealthRecordSchema, insertClinicalAnalysisSchema } from "@shared/schema";
-import OpenAI from "openai";
+import { medicalTranslator } from "./medical-translator";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
 import Papa from "papaparse";
-
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key" 
-});
 
 // Configure multer for file uploads
 const upload = multer({
@@ -29,32 +25,17 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Translate medical diagnosis using AI
+  // Translate medical diagnosis using ClinicalBERT algorithm
   app.post("/api/translate", async (req, res) => {
     try {
       const { originalText } = req.body;
       
       if (!originalText || typeof originalText !== 'string') {
-        return res.status(400).json({ message: "Original text is required" });
+        return res.status(400).json({ message: "El texto original es requerido" });
       }
 
-      // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-      const response = await openai.chat.completions.create({
-        model: "gpt-5",
-        messages: [
-          {
-            role: "system",
-            content: "You are a medical translation expert. Translate complex medical diagnoses into simple, understandable language for patients. Maintain accuracy while using everyday terms. Respond with JSON in this format: { 'translatedText': 'your translation', 'confidence': number_between_0_and_100 }"
-          },
-          {
-            role: "user",
-            content: `Please translate this medical diagnosis into simple, patient-friendly language: "${originalText}"`
-          }
-        ],
-        response_format: { type: "json_object" },
-      });
-
-      const result = JSON.parse(response.choices[0].message.content || '{}');
+      // Usar algoritmo ClinicalBERT local para traducción médica
+      const result = medicalTranslator.translate(originalText);
       
       const diagnosis = await storage.createDiagnosis({
         originalText,
@@ -65,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(diagnosis);
     } catch (error) {
       console.error("Translation error:", error);
-      res.status(500).json({ message: "Failed to translate diagnosis" });
+      res.status(500).json({ message: "Error al traducir el diagnóstico" });
     }
   });
 
@@ -166,41 +147,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Tipo de archivo no soportado" });
       }
 
-      // Analyze with OpenAI
-      // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-      const analysisResponse = await openai.chat.completions.create({
-        model: "gpt-5",
-        messages: [
-          {
-            role: "system",
-            content: `Eres un experto médico que analiza historiales clínicos. Analiza el siguiente contenido médico y proporciona:
-            1. Un resumen claro y comprensible del estado de salud del paciente
-            2. Identifica condiciones médicas principales
-            3. Lista medicamentos mencionados
-            4. Signos vitales encontrados
-            5. Recomendaciones de seguimiento
-            
-            Responde en JSON con este formato: 
-            {
-              "analysis": "análisis completo en español simple",
-              "keyFindings": {
-                "conditions": ["lista de condiciones"],
-                "medications": ["lista de medicamentos"],
-                "vitals": ["signos vitales encontrados"],
-                "recommendations": ["recomendaciones"]
-              },
-              "confidence": número_entre_0_y_100
-            }`
-          },
-          {
-            role: "user",
-            content: `Analiza este historial clínico (${fileType === '.pdf' ? 'PDF' : 'CSV'}): ${fileContent.substring(0, 4000)}${fileContent.length > 4000 ? '...' : ''}`
-          }
-        ],
-        response_format: { type: "json_object" },
-      });
-
-      const analysisResult = JSON.parse(analysisResponse.choices[0].message.content || '{}');
+      // Analizar con algoritmo ClinicalBERT local
+      const analysisResult = medicalTranslator.analyzeClinicalFile(
+        fileContent, 
+        fileType === '.pdf' ? 'pdf' : 'csv'
+      );
       
       // Save analysis to storage
       const clinicalAnalysis = await storage.createClinicalAnalysis({
