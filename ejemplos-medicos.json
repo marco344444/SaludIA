@@ -1,0 +1,219 @@
+{
+  "ejemplos_diagnosticos_medicos": {
+    "descripcion": "Ejemplos de diagnósticos médicos técnicos para probar la IA de traducción",
+    "instrucciones": "Copia y pega estos ejemplos en el campo de diagnóstico para probar la traducción a lenguaje simple",
+    "categorias": {
+      "cardiologia": [
+        {
+          "id": 1,
+          "diagnostico": "Hipertensión arterial sistólica primaria con episodios de taquicardia sinusal intermitente, asociada a diabetes mellitus tipo 2 descompensada con microalbuminuria incipiente.",
+          "complejidad": "alta",
+          "palabras_clave": ["hipertensión", "taquicardia", "diabetes", "microalbuminuria"]
+        },
+        {
+          "id": 2,
+          "diagnostico": "Fibrilación auricular paroxística con respuesta ventricular rápida, anticoagulación con warfarina según escala CHA2DS2-VASc.",
+          "complejidad": "alta",
+          "palabras_clave": ["fibrilación auricular", "anticoagulación", "warfarina"]
+        },
+        {
+          "id": 3,
+          "diagnostico": "Insuficiencia cardíaca congestiva clase funcional II NYHA con fracción de eyección reducida del 35%.",
+          "complejidad": "media",
+          "palabras_clave": ["insuficiencia cardíaca", "fracción de eyección"]
+        }
+      ],
+      "respiratorio": [
+        {
+          "id": 4,
+          "diagnostico": "Enfermedad pulmonar obstructiva crónica (EPOC) en estadio GOLD III con exacerbación aguda secundaria a infección bacteriana.",
+          "complejidad": "alta",
+          "palabras_clave": ["EPOC", "exacerbación", "infección"]
+        },
+        {
+          "id": 5,
+          "diagnostico": "Asma bronquial persistente moderada no controlada con uso frecuente de beta-2 agonistas de acción corta.",
+          "complejidad": "media",
+          "palabras_clave": ["asma", "beta-2 agonistas"]
+        },
+        {
+          "id": 6,
+          "diagnostico": "Neumonía adquirida en la comunidad del lóbulo inferior derecho con derrame pleural paraneumónico.",
+          "complejidad": "media",
+          "palabras_clave": ["neumonía", "derrame pleural"]
+        }
+      ],
+      "endocrinologia": [
+        {
+          "id": 7,
+          "diagnostico": "Diabetes mellitus tipo 2 con hemoglobina glicosilada de 9.2%, neuropatía diabética periférica y retinopatía no proliferativa leve.",
+          "complejidad": "alta",
+          "palabras_clave": ["diabetes", "hemoglobina glicosilada", "neuropatía", "retinopatía"]
+        },
+        {
+          "id": 8,
+          "diagnostico": "Hipotiroidismo primario autoinmune (tiroiditis de Hashimoto) en tratamiento con levotiroxina 100 mcg.",
+          "complejidad": "media",
+          "palabras_clave": ["hipotiroidismo", "Hashimoto", "levotiroxina"]
+        },
+        {
+          "id": 9,
+          "diagnostico": "Síndrome metabólico con obesidad central (IMC 32), dislipidemia mixta e hiperuricemia asintomática.",
+          "complejidad": "media",
+          "palabras_clave": ["síndrome metabólico", "obesidad", "dislipidemia"]
+        }
+      ],
+      "gastroenterologia": [
+        {
+          "id": 10,
+          "diagnostico": "Enfermedad por reflujo gastroesofágico con esofagitis erosiva grado B de Los Ángeles, hernia hiatal deslizante.",
+          "complejidad": "alta",
+          "palabras_clave": ["reflujo", "esofagitis", "hernia hiatal"]
+        },
+        {
+          "id": 11,
+          "diagnostico": "Colitis ulcerosa izquierda en fase de remisión clínica, tratamiento de mantenimiento con mesalazina.",
+          "complejidad": "alta",
+          "palabras_clave": ["colitis ulcerosa", "mesalazina"]
+        },
+        {
+          "id": 12,
+          "diagnostico": "Gastritis crónica antral moderada asociada a Helicobacter pylori, pendiente de erradicación.",
+          "complejidad": "baja",
+          "palabras_clave": ["gastritis", "Helicobacter pylori"]
+        }
+      ],
+      "nefrologia": [
+        {
+          "id": 13,
+          "diagnostico": "Enfermedad renal crónica estadio 3a (TFG 52 ml/min/1.73m²) de etiología hipertensiva con proteinuria de rango no nefrótico.",
+          "complejidad": "alta",
+          "palabras_clave": ["enfermedad renal", "TFG", "proteinuria"]
+        },
+        {
+          "id": 14,
+          "diagnostico": "Litiasis renal recurrente por cálculos de oxalato de calcio, hidronefrosis grado I del riñón izquierdo.",
+          "complejidad": "media",
+          "palabras_clave": ["litiasis", "cálculos", "hidronefrosis"]
+        },
+        {
+          "id": 15,
+          "diagnostico": "Infección urinaria de vías bajas recurrente (cistitis) por Escherichia coli multirresistente.",
+          "complejidad": "media",
+          "palabras_clave": ["infección urinaria", "cistitis", "E. coli"]
+        }
+      ],
+      "neurologia": [
+        {
+          "id": 16,
+          "diagnostico": "Migraña con aura visual, frecuencia de 8-10 episodios mensuales, tratamiento profiláctico con topiramato.",
+          "complejidad": "media",
+          "palabras_clave": ["migraña", "aura", "topiramato"]
+        },
+        {
+          "id": 17,
+          "diagnostico": "Accidente cerebrovascular isquémico de arteria cerebral media izquierda con hemiparesia derecha residual.",
+          "complejidad": "alta",
+          "palabras_clave": ["ACV", "isquémico", "hemiparesia"]
+        },
+        {
+          "id": 18,
+          "diagnostico": "Epilepsia focal sintomática del lóbulo temporal, controlada con carbamazepina 400 mg cada 12 horas.",
+          "complejidad": "alta",
+          "palabras_clave": ["epilepsia", "focal", "carbamazepina"]
+        }
+      ],
+      "reumatologia": [
+        {
+          "id": 19,
+          "diagnostico": "Artritis reumatoide seropositiva con factor reumatoide elevado, actividad moderada (DAS28 4.5), tratamiento con metotrexato.",
+          "complejidad": "alta",
+          "palabras_clave": ["artritis reumatoide", "factor reumatoide", "metotrexato"]
+        },
+        {
+          "id": 20,
+          "diagnostico": "Lupus eritematoso sistémico con manifestaciones cutáneas y articulares, anticuerpos ANA positivos.",
+          "complejidad": "alta",
+          "palabras_clave": ["lupus", "ANA", "sistémico"]
+        },
+        {
+          "id": 21,
+          "diagnostico": "Osteoartritis degenerativa de rodillas bilateral con derrame articular leve y limitación funcional.",
+          "complejidad": "baja",
+          "palabras_clave": ["osteoartritis", "derrame articular"]
+        }
+      ],
+      "dermatologia": [
+        {
+          "id": 22,
+          "diagnostico": "Psoriasis en placas de moderada a severa con afectación del 15% de superficie corporal, candidato a terapia biológica.",
+          "complejidad": "media",
+          "palabras_clave": ["psoriasis", "placas", "terapia biológica"]
+        },
+        {
+          "id": 23,
+          "diagnostico": "Dermatitis atópica crónica con eccema facial y de flexuras, manejo con corticoides tópicos de potencia media.",
+          "complejidad": "baja",
+          "palabras_clave": ["dermatitis atópica", "eccema", "corticoides"]
+        }
+      ],
+      "oncologia": [
+        {
+          "id": 24,
+          "diagnostico": "Adenocarcinoma ductal infiltrante de mama izquierda T2N1M0, estadio IIA, receptores de estrógeno positivos, HER2 negativo.",
+          "complejidad": "muy alta",
+          "palabras_clave": ["adenocarcinoma", "mama", "receptores estrógeno"]
+        },
+        {
+          "id": 25,
+          "diagnostico": "Leucemia linfoblástica aguda de células B en primera remisión completa posterior a quimioterapia de inducción.",
+          "complejidad": "muy alta",
+          "palabras_clave": ["leucemia", "linfoblástica", "remisión"]
+        }
+      ],
+      "pediatria": [
+        {
+          "id": 26,
+          "diagnostico": "Bronquiolitis aguda por virus sincitial respiratorio en lactante de 6 meses con saturación de oxígeno limítrofe.",
+          "complejidad": "media",
+          "palabras_clave": ["bronquiolitis", "virus sincitial", "lactante"]
+        },
+        {
+          "id": 27,
+          "diagnostico": "Otitis media aguda bilateral con perforación timpánica derecha, tratamiento con amoxicilina-clavulánico.",
+          "complejidad": "baja",
+          "palabras_clave": ["otitis media", "perforación timpánica", "amoxicilina"]
+        }
+      ],
+      "psiquiatria": [
+        {
+          "id": 28,
+          "diagnostico": "Trastorno depresivo mayor recurrente, episodio actual moderado sin características psicóticas, en tratamiento con sertralina.",
+          "complejidad": "media",
+          "palabras_clave": ["depresión", "recurrente", "sertralina"]
+        },
+        {
+          "id": 29,
+          "diagnostico": "Trastorno de ansiedad generalizada con ataques de pánico ocasionales, terapia cognitivo-conductual más escitalopram.",
+          "complejidad": "media",
+          "palabras_clave": ["ansiedad", "pánico", "escitalopram"]
+        }
+      ]
+    }
+  },
+  "como_usar": [
+    "1. Abre la aplicación MediTranslate AI",
+    "2. Ve a la pestaña 'Traducir'",
+    "3. Copia uno de los diagnósticos de arriba",
+    "4. Pégalo en el campo 'Texto del Diagnóstico'",
+    "5. Haz clic en 'Traducir con IA'",
+    "6. Observa cómo la IA convierte el texto técnico a lenguaje simple"
+  ],
+  "notas": [
+    "Estos ejemplos son ficticios y solo para propósitos de prueba",
+    "Cubren diferentes especialidades médicas",
+    "Varían en complejidad desde baja hasta muy alta",
+    "Todos son diagnósticos realistas que un médico podría usar",
+    "La IA debería simplificar el lenguaje manteniendo la precisión médica"
+  ]
+}
