@@ -1,0 +1,12 @@
+<!-- Placeholder para icon-192.png -->
+<!-- Este archivo HTML es solo una referencia. -->
+<!-- Para crear los iconos reales, sigue las instrucciones en ICON-GENERATION.md -->
+<!-- 
+Mientras tanto, puedes usar:
+1. https://realfavicongenerator.net/ (sube icon.svg)
+2. O cualquier imagen cuadrada de 192x192px y 512x512px
+
+Coloca los archivos PNG generados en esta carpeta:
+- icon-192.png
+- icon-512.png
+-->

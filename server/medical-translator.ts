@@ -341,11 +341,40 @@ export class MedicalTranslator {
     let analysis = "";
     let confidence = 70;
     
+    // PASO 1: Detectar si existe una sección dedicada a signos vitales
+    const vitalsSection = /(?:SIGNOS VITALES|VITAL SIGNS|CONSTANTES VITALES|EXAMEN FÍSICO|EXPLORACIÓN FÍSICA|DATOS VITALES)/i.test(content);
+    
+    // PASO 2: Si no hay sección de signos vitales, NO buscar signos vitales aislados
+    // Esto evita falsos positivos como "bajó 5 kg" o menciones de peso en contexto narrativo
+    
     // Analizar contenido línea por línea
     const lines = content.split('\n');
+    let inVitalsSection = false;
+    let sectionLineCount = 0;
     
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       const lowerLine = line.toLowerCase();
+      
+      // Detectar inicio de sección de signos vitales
+      if (/^(?:SIGNOS VITALES|VITAL SIGNS|CONSTANTES VITALES|EXAMEN FÍSICO|EXPLORACIÓN FÍSICA|DATOS VITALES)/i.test(line.trim())) {
+        inVitalsSection = true;
+        sectionLineCount = 0;
+        continue;
+      }
+      
+      // Detectar fin de sección (nueva sección comienza)
+      if (inVitalsSection && /^[A-ZÁÉÍÓÚÑ\s]{10,}:?$/.test(line.trim())) {
+        inVitalsSection = false;
+      }
+      
+      // Contar líneas en la sección (máximo 20 líneas para signos vitales)
+      if (inVitalsSection) {
+        sectionLineCount++;
+        if (sectionLineCount > 20) {
+          inVitalsSection = false;
+        }
+      }
       
       // Detectar condiciones médicas
       for (const term in medicalDictionary) {
@@ -354,36 +383,93 @@ export class MedicalTranslator {
         }
       }
       
-      // Detectar medicamentos (patrones comunes)
-      if (/mg|ml|comprimido|cápsula|tableta|jarabe/i.test(line)) {
-        const medicationMatch = line.match(/(\w+)\s*\d+\s*(mg|ml|gr)/i);
+      // Detectar medicamentos (patrones comunes) - mejorado
+      if (/\b(?:mg|ml|mcg|ui|comprimido|cápsula|tableta|jarabe)\b/i.test(line)) {
+        // Buscar nombre de medicamento seguido de dosis
+        const medicationMatch = line.match(/\b([A-Z][a-z]+(?:ina|ol|pam|mab|ril|tan|vir|din|xin|mida|pina|sona)?)\s+\d+\s*(?:mg|ml|mcg|ui|gr)\b/i);
         if (medicationMatch) {
           findings.medications.push(medicationMatch[0]);
         }
       }
       
-      // Detectar signos vitales
-      if (/presión|tensión/i.test(lowerLine) && /\d+\/\d+/.test(line)) {
-        findings.vitals.push(`Presión arterial: ${line.match(/\d+\/\d+/)?.[0]}`);
-      }
-      
-      if (/glucosa|azúcar/i.test(lowerLine) && /\d+/.test(line)) {
-        const glucoseMatch = line.match(/\d+/);
-        if (glucoseMatch) {
-          findings.vitals.push(`Glucosa: ${glucoseMatch[0]} mg/dL`);
+      // ====== SIGNOS VITALES: SOLO si estamos en la sección correcta ======
+      if (inVitalsSection) {
+        // Presión arterial
+        if (/presión|tensión|pa\s*[:=]|blood pressure|bp\s*[:=]/i.test(lowerLine)) {
+          const bpMatch = line.match(/(\d{2,3})\s*[\/\-]\s*(\d{2,3})\s*(?:mmhg)?/i);
+          if (bpMatch && parseInt(bpMatch[1]) > 70 && parseInt(bpMatch[1]) < 250) {
+            findings.vitals.push(`Presión arterial: ${bpMatch[1]}/${bpMatch[2]} mmHg`);
+          }
         }
-      }
-      
-      if (/peso/i.test(lowerLine) && /\d+/.test(line)) {
-        const weightMatch = line.match(/\d+(?:\.\d+)?/);
-        if (weightMatch) {
-          findings.vitals.push(`Peso: ${weightMatch[0]} kg`);
+        
+        // Glucosa
+        if (/glucosa|glicemia|glucemia|glucose/i.test(lowerLine)) {
+          const glucoseMatch = line.match(/(\d+(?:\.\d+)?)\s*(?:mg\/dl|mg\/dL|mmol\/l)?/i);
+          if (glucoseMatch && parseFloat(glucoseMatch[1]) > 40 && parseFloat(glucoseMatch[1]) < 600) {
+            findings.vitals.push(`Glucosa: ${glucoseMatch[1]} mg/dL`);
+          }
+        }
+        
+        // Peso - MUY ESTRICTO: solo formato "Peso: XX kg" o en tabla
+        if (/^[\s\-\*•]*peso\s*[:=]\s*\d+/i.test(lowerLine) || /\bpeso\s*[:=]\s*\d+\s*kg\b/i.test(lowerLine)) {
+          const weightMatch = line.match(/peso\s*[:=]\s*(\d+(?:\.\d+)?)\s*(?:kg)?/i);
+          if (weightMatch && parseFloat(weightMatch[1]) > 20 && parseFloat(weightMatch[1]) < 300) {
+            findings.vitals.push(`Peso: ${weightMatch[1]} kg`);
+          }
+        }
+        
+        // Talla/Altura
+        if (/talla|altura|height/i.test(lowerLine)) {
+          const heightMatch = line.match(/(\d+(?:\.\d+)?)\s*(?:cm|m|metros)/i);
+          if (heightMatch) {
+            const height = parseFloat(heightMatch[1]);
+            if (height > 1.2 && height < 2.5) {
+              findings.vitals.push(`Talla: ${heightMatch[1]} m`);
+            } else if (height > 120 && height < 250) {
+              findings.vitals.push(`Talla: ${heightMatch[1]} cm`);
+            }
+          }
+        }
+        
+        // Temperatura
+        if (/temperatura|temp\.|fiebre/i.test(lowerLine)) {
+          const tempMatch = line.match(/(\d+(?:\.\d+)?)\s*[°º]?\s*[cC]/);
+          if (tempMatch && parseFloat(tempMatch[1]) > 34 && parseFloat(tempMatch[1]) < 43) {
+            findings.vitals.push(`Temperatura: ${tempMatch[1]}°C`);
+          }
+        }
+        
+        // Frecuencia cardíaca
+        if (/frecuencia cardíaca|fc\s*[:=]|pulso|heart rate|hr\s*[:=]/i.test(lowerLine)) {
+          const hrMatch = line.match(/(\d+)\s*(?:lpm|bpm|ppm|latidos)/i);
+          if (hrMatch && parseFloat(hrMatch[1]) > 30 && parseFloat(hrMatch[1]) < 250) {
+            findings.vitals.push(`Frecuencia cardíaca: ${hrMatch[1]} lpm`);
+          }
+        }
+        
+        // Frecuencia respiratoria
+        if (/frecuencia respiratoria|fr\s*[:=]|respiratory rate|rr\s*[:=]/i.test(lowerLine)) {
+          const rrMatch = line.match(/(\d+)\s*(?:rpm|respiraciones)/i);
+          if (rrMatch && parseFloat(rrMatch[1]) > 8 && parseFloat(rrMatch[1]) < 60) {
+            findings.vitals.push(`Frecuencia respiratoria: ${rrMatch[1]} rpm`);
+          }
+        }
+        
+        // Saturación de oxígeno
+        if (/saturación|spo2|sat\s*o2|oxygen saturation/i.test(lowerLine)) {
+          const satMatch = line.match(/(\d+)\s*%/);
+          if (satMatch && parseFloat(satMatch[1]) > 70 && parseFloat(satMatch[1]) <= 100) {
+            findings.vitals.push(`Saturación O2: ${satMatch[1]}%`);
+          }
         }
       }
       
       // Detectar recomendaciones
       if (/recomienda|sugiere|debe|continuar|suspender/i.test(lowerLine)) {
-        findings.recommendations.push(line.trim());
+        const cleanedLine = line.trim().replace(/^[-•*]\s*/, '');
+        if (cleanedLine.length > 15 && cleanedLine.length < 300) {
+          findings.recommendations.push(cleanedLine);
+        }
       }
     }
     

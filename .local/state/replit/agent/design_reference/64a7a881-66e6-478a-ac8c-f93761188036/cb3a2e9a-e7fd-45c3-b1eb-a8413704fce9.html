@@ -1,0 +1,660 @@
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediTranslate AI - Traductor de Diagnósticos Médicos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                },
+                fontFamily: {
+                    sans: ["Inter", "sans-serif"],
+                }
+            },
+        }
+    };
+    </script>
+    <style>
+        :root {
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(222.2 84% 4.9%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222.2 84% 4.9%);
+            --primary: hsl(221.2 83.2% 53.3%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(188 95% 30%);
+            --secondary-foreground: hsl(210 40% 98%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215.4 16.3% 46.9%);
+            --accent: hsl(142.1 76.2% 36.3%);
+            --accent-foreground: hsl(355.7 100% 97.3%);
+            --border: hsl(214.3 31.8% 91.4%);
+            --input: hsl(214.3 31.8% 91.4%);
+            --ring: hsl(221.2 83.2% 53.3%);
+            --radius: 8px;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, hsl(221.2 83.2% 53.3%) 0%, hsl(188 95% 30%) 100%);
+        }
+        
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .medical-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        
+        .typing-indicator::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="h-full bg-background text-foreground font-sans">
+    
+    <!-- @COMPONENT: MobileApp [Main container for the medical translation app] -->
+    <div class="min-h-screen bg-background">
+        
+        <!-- @COMPONENT: Header [App navigation and user info] -->
+        <header class="bg-card border-b border-border sticky top-0 z-50">
+            <div class="max-w-md mx-auto px-4 py-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                            <i class="fas fa-user-md text-primary-foreground text-sm"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-lg font-semibold text-foreground">MediTranslate AI</h1>
+                            <p class="text-xs text-muted-foreground" data-bind="user.name">Dr. María García</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="p-2 text-muted-foreground hover:text-foreground transition-colors">
+                            <i class="fas fa-bell text-sm"></i>
+                        </button>
+                        <button class="p-2 text-muted-foreground hover:text-foreground transition-colors">
+                            <i class="fas fa-cog text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: Header -->
+
+        <!-- @COMPONENT: TabNavigation [Main navigation tabs] -->
+        <nav class="bg-card border-b border-border">
+            <div class="max-w-md mx-auto px-4">
+                <div class="flex space-x-1" role="tablist">
+                    <button class="flex-1 py-3 px-4 text-sm font-medium text-primary border-b-2 border-primary bg-primary/5 rounded-t-lg transition-all" 
+                            data-tab="translate" role="tab" aria-selected="true">
+                        <i class="fas fa-language mr-2"></i>Traducir
+                    </button>
+                    <button class="flex-1 py-3 px-4 text-sm font-medium text-muted-foreground hover:text-foreground border-b-2 border-transparent hover:border-border rounded-t-lg transition-all" 
+                            data-tab="dashboard" role="tab" aria-selected="false">
+                        <i class="fas fa-chart-line mr-2"></i>Dashboard
+                    </button>
+                    <button class="flex-1 py-3 px-4 text-sm font-medium text-muted-foreground hover:text-foreground border-b-2 border-transparent hover:border-border rounded-t-lg transition-all" 
+                            data-tab="history" role="tab" aria-selected="false">
+                        <i class="fas fa-history mr-2"></i>Historial
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <!-- @END_COMPONENT: TabNavigation -->
+
+        <!-- @COMPONENT: MainContent [Tab content container] -->
+        <main class="max-w-md mx-auto px-4 py-6 space-y-6">
+            
+            <!-- @COMPONENT: TranslateTab [Medical diagnosis translation interface] -->
+            <div id="translate-tab" class="space-y-6" data-tab-content="translate">
+                
+                <!-- Security Badge -->
+                <div class="bg-accent/10 border border-accent/20 rounded-lg p-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-shield-alt text-accent text-sm"></i>
+                        <span class="text-sm font-medium text-accent-foreground">Conexión Segura HIPAA</span>
+                        <i class="fas fa-check-circle text-accent text-sm ml-auto"></i>
+                    </div>
+                </div>
+
+                <!-- @COMPONENT: DiagnosisInput [Form for entering medical diagnosis] -->
+                <div class="medical-card rounded-lg p-6">
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                <i class="fas fa-stethoscope text-primary"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-semibold text-foreground">Diagnóstico Médico</h2>
+                                <p class="text-sm text-muted-foreground">Ingrese el diagnóstico técnico</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <label for="diagnosis-input" class="block text-sm font-medium text-foreground">
+                                Texto del Diagnóstico
+                            </label>
+                            <textarea 
+                                id="diagnosis-input" 
+                                class="w-full h-32 px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-none"
+                                placeholder="Ejemplo: Hipertensión arterial sistólica primaria con episodios de taquicardia sinusal intermitente..."
+                                data-mock="true"
+                            ></textarea>
+                            
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-muted-foreground">0/500 caracteres</span>
+                                <button class="text-xs text-primary hover:text-primary/80 transition-colors" data-event="click:pasteExample">
+                                    <i class="fas fa-paste mr-1"></i>Ejemplo
+                                </button>
+                            </div>
+                        </div>
+
+                        <button class="w-full gradient-bg text-primary-foreground py-3 px-4 rounded-lg font-medium transition-all hover:opacity-90 disabled:opacity-50" 
+                                data-event="click:translateDiagnosis" data-implementation="Should call OpenAI API for translation">
+                            <i class="fas fa-robot mr-2"></i>
+                            Traducir con IA
+                        </button>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: DiagnosisInput -->
+
+                <!-- @COMPONENT: TranslationResult [Display translated diagnosis] -->
+                <div class="medical-card rounded-lg p-6" id="translation-result" style="display: none;">
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
+                                <i class="fas fa-comments text-secondary"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-foreground">Traducción Simple</h3>
+                                <p class="text-sm text-muted-foreground">Explicación comprensible</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-secondary/5 border border-secondary/20 rounded-lg p-4">
+                            <p class="text-foreground leading-relaxed" data-mock="true">
+                                Su presión arterial está más alta de lo normal, y su corazón a veces late más rápido de lo usual. Esto es común y se puede controlar con medicamentos y cambios en el estilo de vida.
+                            </p>
+                        </div>
+                        
+                        <div class="flex space-x-2">
+                            <button class="flex-1 bg-muted text-muted-foreground py-2 px-3 rounded-md text-sm hover:bg-muted/80 transition-colors">
+                                <i class="fas fa-copy mr-2"></i>Copiar
+                            </button>
+                            <button class="flex-1 bg-muted text-muted-foreground py-2 px-3 rounded-md text-sm hover:bg-muted/80 transition-colors">
+                                <i class="fas fa-share mr-2"></i>Compartir
+                            </button>
+                            <button class="flex-1 bg-muted text-muted-foreground py-2 px-3 rounded-md text-sm hover:bg-muted/80 transition-colors">
+                                <i class="fas fa-save mr-2"></i>Guardar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: TranslationResult -->
+
+                <!-- @COMPONENT: QuickActions [Common medical translation shortcuts] -->
+                <div class="space-y-3">
+                    <h3 class="text-sm font-medium text-muted-foreground">Traducciones Rápidas</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- @MAP: quickTranslations.map(item => ( -->
+                        <button class="bg-card border border-border rounded-lg p-3 text-left hover:bg-muted/50 transition-colors" data-mock="true">
+                            <div class="text-sm font-medium text-foreground">Hipertensión</div>
+                            <div class="text-xs text-muted-foreground mt-1">Presión alta</div>
+                        </button>
+                        <button class="bg-card border border-border rounded-lg p-3 text-left hover:bg-muted/50 transition-colors" data-mock="true">
+                            <div class="text-sm font-medium text-foreground">Diabetes Tipo 2</div>
+                            <div class="text-xs text-muted-foreground mt-1">Azúcar alta</div>
+                        </button>
+                        <button class="bg-card border border-border rounded-lg p-3 text-left hover:bg-muted/50 transition-colors" data-mock="true">
+                            <div class="text-sm font-medium text-foreground">Migraña</div>
+                            <div class="text-xs text-muted-foreground mt-1">Dolor de cabeza fuerte</div>
+                        </button>
+                        <button class="bg-card border border-border rounded-lg p-3 text-left hover:bg-muted/50 transition-colors" data-mock="true">
+                            <div class="text-sm font-medium text-foreground">Gastritis</div>
+                            <div class="text-xs text-muted-foreground mt-1">Inflamación estómago</div>
+                        </button>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: QuickActions -->
+            </div>
+            <!-- @END_COMPONENT: TranslateTab -->
+
+            <!-- @COMPONENT: DashboardTab [Health tracking dashboard] -->
+            <div id="dashboard-tab" class="space-y-6" data-tab-content="dashboard" style="display: none;">
+                
+                <!-- @COMPONENT: HealthOverview [Patient health summary] -->
+                <div class="medical-card rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-foreground">Resumen de Salud</h2>
+                        <button class="text-sm text-primary hover:text-primary/80">
+                            <i class="fas fa-edit mr-1"></i>Editar
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-primary" data-bind="patient.age" data-mock="true">45</div>
+                            <div class="text-xs text-muted-foreground">Años</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-secondary" data-bind="patient.conditions" data-mock="true">2</div>
+                            <div class="text-xs text-muted-foreground">Condiciones</div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <!-- @MAP: healthConditions.map(condition => ( -->
+                        <div class="flex items-center justify-between p-3 bg-muted/30 rounded-lg" data-mock="true">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-heartbeat text-accent text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-foreground">Hipertensión</div>
+                                    <div class="text-xs text-muted-foreground">Controlada</div>
+                                </div>
+                            </div>
+                            <div class="text-accent text-sm font-medium">Estable</div>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-muted/30 rounded-lg" data-mock="true">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-tint text-primary text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-foreground">Diabetes Tipo 2</div>
+                                    <div class="text-xs text-muted-foreground">En tratamiento</div>
+                                </div>
+                            </div>
+                            <div class="text-primary text-sm font-medium">Mejorando</div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: HealthOverview -->
+
+                <!-- @COMPONENT: VitalSigns [Recent vital signs tracking] -->
+                <div class="medical-card rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-foreground">Signos Vitales</h3>
+                        <button class="text-sm text-primary hover:text-primary/80">
+                            <i class="fas fa-plus mr-1"></i>Agregar
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 gap-4">
+                        <div class="flex items-center justify-between p-4 border border-border rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-heartbeat text-red-500"></i>
+                                <div>
+                                    <div class="text-sm font-medium text-foreground">Presión Arterial</div>
+                                    <div class="text-xs text-muted-foreground">Hoy, 08:30</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-bold text-foreground" data-mock="true">120/80</div>
+                                <div class="text-xs text-accent">Normal</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-4 border border-border rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-thermometer-half text-orange-500"></i>
+                                <div>
+                                    <div class="text-sm font-medium text-foreground">Glucosa</div>
+                                    <div class="text-xs text-muted-foreground">Ayer, 20:15</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-bold text-foreground" data-mock="true">95 mg/dL</div>
+                                <div class="text-xs text-accent">Objetivo</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-4 border border-border rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-weight text-blue-500"></i>
+                                <div>
+                                    <div class="text-sm font-medium text-foreground">Peso</div>
+                                    <div class="text-xs text-muted-foreground">Esta semana</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-bold text-foreground" data-mock="true">68.5 kg</div>
+                                <div class="text-xs text-primary">-0.3 kg</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: VitalSigns -->
+
+                <!-- @COMPONENT: MedicationTracker [Current medications] -->
+                <div class="medical-card rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-foreground">Medicamentos</h3>
+                        <button class="text-sm text-primary hover:text-primary/80">
+                            <i class="fas fa-pills mr-1"></i>Gestionar
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <!-- @MAP: medications.map(med => ( -->
+                        <div class="flex items-center space-x-4 p-3 border border-border rounded-lg" data-mock="true">
+                            <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-capsules text-primary"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-foreground">Enalapril 10mg</div>
+                                <div class="text-xs text-muted-foreground">Tomar con el desayuno</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs font-medium text-accent">Tomado</div>
+                                <div class="text-xs text-muted-foreground">8:30 AM</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4 p-3 border border-border rounded-lg" data-mock="true">
+                            <div class="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-tablets text-secondary"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-foreground">Metformina 500mg</div>
+                                <div class="text-xs text-muted-foreground">Con almuerzo y cena</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs font-medium text-muted-foreground">Pendiente</div>
+                                <div class="text-xs text-muted-foreground">14:00</div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: MedicationTracker -->
+            </div>
+            <!-- @END_COMPONENT: DashboardTab -->
+
+            <!-- @COMPONENT: HistoryTab [Translation and health history] -->
+            <div id="history-tab" class="space-y-6" data-tab-content="history" style="display: none;">
+                
+                <!-- @COMPONENT: RecentTranslations [Recent diagnosis translations] -->
+                <div class="medical-card rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-foreground">Traducciones Recientes</h2>
+                        <button class="text-sm text-primary hover:text-primary/80">
+                            <i class="fas fa-search mr-1"></i>Buscar
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- @MAP: translationHistory.map(translation => ( -->
+                        <div class="border border-border rounded-lg p-4" data-mock="true">
+                            <div class="flex items-start justify-between mb-2">
+                                <div class="text-sm font-medium text-foreground">Hipertensión arterial sistólica</div>
+                                <div class="text-xs text-muted-foreground">Hace 2 horas</div>
+                            </div>
+                            <div class="text-sm text-muted-foreground mb-3">
+                                Traducido a: "Su presión arterial está más alta de lo normal..."
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="text-xs text-primary hover:text-primary/80">
+                                    <i class="fas fa-eye mr-1"></i>Ver completo
+                                </button>
+                                <button class="text-xs text-primary hover:text-primary/80">
+                                    <i class="fas fa-redo mr-1"></i>Retraducir
+                                </button>
+                            </div>
+                        </div>
+                        <div class="border border-border rounded-lg p-4" data-mock="true">
+                            <div class="flex items-start justify-between mb-2">
+                                <div class="text-sm font-medium text-foreground">Diabetes mellitus tipo 2</div>
+                                <div class="text-xs text-muted-foreground">Ayer</div>
+                            </div>
+                            <div class="text-sm text-muted-foreground mb-3">
+                                Traducido a: "Su cuerpo tiene dificultades para usar el azúcar..."
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="text-xs text-primary hover:text-primary/80">
+                                    <i class="fas fa-eye mr-1"></i>Ver completo
+                                </button>
+                                <button class="text-xs text-primary hover:text-primary/80">
+                                    <i class="fas fa-redo mr-1"></i>Retraducir
+                                </button>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: RecentTranslations -->
+
+                <!-- @COMPONENT: HealthTimeline [Health events timeline] -->
+                <div class="medical-card rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-foreground mb-4">Línea de Tiempo</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- @MAP: healthEvents.map(event => ( -->
+                        <div class="flex space-x-4" data-mock="true">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 bg-primary rounded-full"></div>
+                                <div class="w-0.5 h-8 bg-border"></div>
+                            </div>
+                            <div class="flex-1 pb-4">
+                                <div class="text-sm font-medium text-foreground">Consulta de seguimiento</div>
+                                <div class="text-xs text-muted-foreground">Presión arterial controlada - 15 Mar 2024</div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-4" data-mock="true">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 bg-secondary rounded-full"></div>
+                                <div class="w-0.5 h-8 bg-border"></div>
+                            </div>
+                            <div class="flex-1 pb-4">
+                                <div class="text-sm font-medium text-foreground">Exámenes de laboratorio</div>
+                                <div class="text-xs text-muted-foreground">Glucosa en ayunas - 10 Mar 2024</div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-4" data-mock="true">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 bg-accent rounded-full"></div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-foreground">Inicio de tratamiento</div>
+                                <div class="text-xs text-muted-foreground">Metformina prescrita - 1 Mar 2024</div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: HealthTimeline -->
+            </div>
+            <!-- @END_COMPONENT: HistoryTab -->
+
+        </main>
+        <!-- @END_COMPONENT: MainContent -->
+
+        <!-- @COMPONENT: PrivacyFooter [HIPAA compliance and privacy information] -->
+        <footer class="bg-card border-t border-border mt-8">
+            <div class="max-w-md mx-auto px-4 py-4">
+                <div class="flex items-center justify-center space-x-4 text-xs text-muted-foreground">
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-shield-alt text-accent"></i>
+                        <span>HIPAA Seguro</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-lock"></i>
+                        <span>Cifrado E2E</span>
+                    </div>
+                    <button class="text-primary hover:text-primary/80 transition-colors">
+                        Privacidad
+                    </button>
+                </div>
+                <div class="text-center text-xs text-muted-foreground mt-2">
+                    © 2024 MediTranslate AI - Cumple con HIPAA
+                </div>
+            </div>
+        </footer>
+        <!-- @END_COMPONENT: PrivacyFooter -->
+
+    </div>
+    <!-- @END_COMPONENT: MobileApp -->
+
+    <!-- @COMPONENT: LoadingOverlay [AI processing indicator] -->
+    <div id="loading-overlay" class="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 hidden">
+        <div class="flex items-center justify-center h-full">
+            <div class="medical-card rounded-lg p-8 max-w-sm mx-4">
+                <div class="text-center space-y-4">
+                    <div class="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                        <i class="fas fa-robot text-primary text-2xl pulse-animation"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-foreground">Procesando con IA</h3>
+                        <p class="text-sm text-muted-foreground typing-indicator">Traduciendo diagnóstico</p>
+                    </div>
+                    <div class="w-full bg-muted rounded-full h-2">
+                        <div class="bg-primary h-2 rounded-full transition-all duration-1000" style="width: 65%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: LoadingOverlay -->
+
+    <script>
+        // Tab navigation functionality
+        (function() {
+            const tabs = document.querySelectorAll('[data-tab]');
+            const tabContents = document.querySelectorAll('[data-tab-content]');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active states
+                    tabs.forEach(t => {
+                        t.classList.remove('text-primary', 'border-primary', 'bg-primary/5');
+                        t.classList.add('text-muted-foreground', 'border-transparent');
+                        t.setAttribute('aria-selected', 'false');
+                    });
+                    
+                    // Hide all content
+                    tabContents.forEach(content => {
+                        content.style.display = 'none';
+                    });
+                    
+                    // Activate clicked tab
+                    tab.classList.remove('text-muted-foreground', 'border-transparent');
+                    tab.classList.add('text-primary', 'border-primary', 'bg-primary/5');
+                    tab.setAttribute('aria-selected', 'true');
+                    
+                    // Show corresponding content
+                    const targetContent = document.getElementById(tab.dataset.tab + '-tab');
+                    if (targetContent) {
+                        targetContent.style.display = 'block';
+                    }
+                });
+            });
+            
+            // Demo translation functionality
+            const translateBtn = document.querySelector('[data-event="click:translateDiagnosis"]');
+            const translationResult = document.getElementById('translation-result');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            
+            if (translateBtn && translationResult && loadingOverlay) {
+                translateBtn.addEventListener('click', () => {
+                    // Show loading overlay
+                    loadingOverlay.classList.remove('hidden');
+                    
+                    // Simulate AI processing
+                    setTimeout(() => {
+                        loadingOverlay.classList.add('hidden');
+                        translationResult.style.display = 'block';
+                        translationResult.scrollIntoView({ behavior: 'smooth' });
+                    }, 3000);
+                });
+            }
+            
+            // Example text functionality
+            const pasteExampleBtn = document.querySelector('[data-event="click:pasteExample"]');
+            const diagnosisInput = document.getElementById('diagnosis-input');
+            
+            if (pasteExampleBtn && diagnosisInput) {
+                pasteExampleBtn.addEventListener('click', () => {
+                    diagnosisInput.value = 'Hipertensión arterial sistólica primaria con episodios de taquicardia sinusal intermitente, asociada a diabetes mellitus tipo 2 descompensada con microalbuminuria incipiente.';
+                    diagnosisInput.focus();
+                });
+            }
+            
+            // Character counter
+            if (diagnosisInput) {
+                const updateCounter = () => {
+                    const counter = document.querySelector('.text-xs.text-muted-foreground');
+                    if (counter) {
+                        const count = diagnosisInput.value.length;
+                        counter.textContent = `${count}/500 caracteres`;
+                    }
+                };
+                
+                diagnosisInput.addEventListener('input', updateCounter);
+            }
+            
+        })();
+        
+        // TODO: Implement OpenAI API integration for medical text translation
+        // TODO: Implement secure patient data storage with HIPAA compliance
+        // TODO: Add real-time health data synchronization
+        // TODO: Implement medication reminder notifications
+        // TODO: Add offline mode for critical health information
+    </script>
+</body>
+</html>

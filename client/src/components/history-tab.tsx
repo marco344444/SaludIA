@@ -1,12 +1,50 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useTranslations } from "@/hooks/use-translations";
 import { useClinicalAnalysis } from "@/hooks/use-clinical-analysis";
-import { Search, Eye, RotateCcw, Calendar, FileText, File, Bot } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Search, Eye, RotateCcw, Calendar, FileText, File, Bot, X, CheckCircle, AlertCircle } from "lucide-react";
+import { useState } from "react";
 
 export default function HistoryTab() {
   const { translationHistory } = useTranslations();
   const { clinicalAnalyses } = useClinicalAnalysis();
+  const { toast } = useToast();
+  
+  // Estados para modales
+  const [selectedTranslation, setSelectedTranslation] = useState<any>(null);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
+  const [viewTranslationOpen, setViewTranslationOpen] = useState(false);
+  const [viewAnalysisOpen, setViewAnalysisOpen] = useState(false);
+
+  // Handler para ver traducción completa
+  const handleViewTranslation = (translation: any) => {
+    setSelectedTranslation(translation);
+    setViewTranslationOpen(true);
+  };
+
+  // Handler para retraducir
+  const handleRetranslate = (translation: any) => {
+    toast({
+      title: "🔄 Retraduciendo...",
+      description: "Esta función estará disponible próximamente",
+    });
+  };
+
+  // Handler para ver análisis completo
+  const handleViewAnalysis = (analysis: any) => {
+    setSelectedAnalysis(analysis);
+    setViewAnalysisOpen(true);
+  };
+
+  // Handler para re-analizar
+  const handleReanalyze = (analysis: any) => {
+    toast({
+      title: "🤖 Re-analizando...",
+      description: "Esta función estará disponible próximamente",
+    });
+  };
 
   return (
     <div className="space-y-6" data-testid="history-tab">
@@ -60,11 +98,21 @@ export default function HistoryTab() {
                     }"
                   </div>
                   <div className="flex space-x-2">
-                    <Button variant="ghost" size="sm" data-testid={`button-view-${translation.id}`}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => handleViewTranslation(translation)}
+                      data-testid={`button-view-${translation.id}`}
+                    >
                       <Eye className="w-3 h-3 mr-1" />
                       Ver completo
                     </Button>
-                    <Button variant="ghost" size="sm" data-testid={`button-retranslate-${translation.id}`}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleRetranslate(translation)}
+                      data-testid={`button-retranslate-${translation.id}`}
+                    >
                       <RotateCcw className="w-3 h-3 mr-1" />
                       Retraducir
                     </Button>
@@ -213,11 +261,21 @@ export default function HistoryTab() {
                   )}
 
                   <div className="flex space-x-2">
-                    <Button variant="ghost" size="sm" data-testid={`button-view-analysis-${analysis.id}`}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleViewAnalysis(analysis)}
+                      data-testid={`button-view-analysis-${analysis.id}`}
+                    >
                       <Eye className="w-3 h-3 mr-1" />
                       Ver completo
                     </Button>
-                    <Button variant="ghost" size="sm" data-testid={`button-reanalyze-${analysis.id}`}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleReanalyze(analysis)}
+                      data-testid={`button-reanalyze-${analysis.id}`}
+                    >
                       <Bot className="w-3 h-3 mr-1" />
                       Re-analizar
                     </Button>
@@ -228,6 +286,214 @@ export default function HistoryTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal: Ver Traducción Completa */}
+      <Dialog open={viewTranslationOpen} onOpenChange={setViewTranslationOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Traducción Completa</DialogTitle>
+            <DialogDescription>
+              {selectedTranslation?.createdAt 
+                ? new Date(selectedTranslation.createdAt).toLocaleDateString('es', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTranslation && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm text-muted-foreground uppercase">Texto Original (Médico)</h4>
+                <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4">
+                  <p className="text-foreground leading-relaxed whitespace-pre-wrap">
+                    {selectedTranslation.originalText}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center">
+                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                  <RotateCcw className="w-4 h-4 text-primary" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm text-muted-foreground uppercase">Traducción (Lenguaje Simple)</h4>
+                <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
+                  <p className="text-foreground leading-relaxed whitespace-pre-wrap">
+                    {selectedTranslation.translatedText}
+                  </p>
+                </div>
+              </div>
+
+              {selectedTranslation.identifiedTerms && selectedTranslation.identifiedTerms.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase">Términos Identificados</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTranslation.identifiedTerms.map((term: string, index: number) => (
+                      <span key={index} className="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full">
+                        {term}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setViewTranslationOpen(false)}>
+                  <X className="w-4 h-4 mr-1" />
+                  Cerrar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Ver Análisis Completo */}
+      <Dialog open={viewAnalysisOpen} onOpenChange={setViewAnalysisOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedAnalysis?.fileType === 'pdf' ? (
+                <FileText className="w-5 h-5 text-secondary" />
+              ) : (
+                <File className="w-5 h-5 text-secondary" />
+              )}
+              {selectedAnalysis?.fileName}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedAnalysis?.createdAt 
+                ? new Date(selectedAnalysis.createdAt).toLocaleDateString('es', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
+                : ''} • Confianza: {selectedAnalysis?.confidence || 0}%
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedAnalysis && (
+            <div className="space-y-6 py-4">
+              {/* Resumen del Análisis */}
+              <div className="space-y-2">
+                <h4 className="flex items-center gap-2 font-semibold text-sm text-muted-foreground uppercase">
+                  <Bot className="w-4 h-4" />
+                  Resumen del Análisis
+                </h4>
+                <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+                  <p className="text-foreground leading-relaxed whitespace-pre-wrap">
+                    {selectedAnalysis.analysis}
+                  </p>
+                </div>
+              </div>
+
+              {/* Hallazgos Clave */}
+              {selectedAnalysis.keyFindings && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Condiciones */}
+                  {selectedAnalysis.keyFindings.conditions?.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="flex items-center gap-2 font-semibold text-sm text-secondary">
+                        <AlertCircle className="w-4 h-4" />
+                        Condiciones Detectadas
+                      </h4>
+                      <div className="bg-secondary/5 border border-secondary/20 rounded-lg p-3">
+                        <ul className="space-y-1.5">
+                          {selectedAnalysis.keyFindings.conditions.map((condition: string, index: number) => (
+                            <li key={index} className="text-sm text-foreground flex items-start gap-2">
+                              <span className="text-secondary mt-0.5">•</span>
+                              <span>{condition}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Medicamentos */}
+                  {selectedAnalysis.keyFindings.medications?.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="flex items-center gap-2 font-semibold text-sm text-primary">
+                        <CheckCircle className="w-4 h-4" />
+                        Medicamentos
+                      </h4>
+                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                        <ul className="space-y-1.5">
+                          {selectedAnalysis.keyFindings.medications.map((medication: string, index: number) => (
+                            <li key={index} className="text-sm text-foreground flex items-start gap-2">
+                              <span className="text-primary mt-0.5">•</span>
+                              <span>{medication}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Signos Vitales */}
+                  {selectedAnalysis.keyFindings.vitals?.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="flex items-center gap-2 font-semibold text-sm text-accent">
+                        <Eye className="w-4 h-4" />
+                        Signos Vitales
+                      </h4>
+                      <div className="bg-accent/5 border border-accent/20 rounded-lg p-3">
+                        <ul className="space-y-1.5">
+                          {selectedAnalysis.keyFindings.vitals.map((vital: string, index: number) => (
+                            <li key={index} className="text-sm text-foreground flex items-start gap-2">
+                              <span className="text-accent mt-0.5">•</span>
+                              <span>{vital}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recomendaciones */}
+                  {selectedAnalysis.keyFindings.recommendations?.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="flex items-center gap-2 font-semibold text-sm text-muted-foreground">
+                        <CheckCircle className="w-4 h-4" />
+                        Recomendaciones
+                      </h4>
+                      <div className="bg-muted/30 border border-border rounded-lg p-3">
+                        <ul className="space-y-1.5">
+                          {selectedAnalysis.keyFindings.recommendations.map((rec: string, index: number) => (
+                            <li key={index} className="text-sm text-foreground flex items-start gap-2">
+                              <span className="text-muted-foreground mt-0.5">•</span>
+                              <span>{rec}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-border">
+                <Button variant="outline" onClick={() => setViewAnalysisOpen(false)}>
+                  <X className="w-4 h-4 mr-1" />
+                  Cerrar
+                </Button>
+                <Button variant="default" onClick={() => handleReanalyze(selectedAnalysis)}>
+                  <Bot className="w-4 h-4 mr-1" />
+                  Re-analizar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

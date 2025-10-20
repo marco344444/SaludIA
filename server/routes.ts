@@ -1,12 +1,16 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertDiagnosisSchema, insertHealthRecordSchema, insertClinicalAnalysisSchema } from "@shared/schema";
+import { insertDiagnosisSchema, insertHealthRecordSchema, insertClinicalAnalysisSchema, insertUserSchema, loginSchema } from "@shared/schema";
 import { medicalTranslator } from "./medical-translator";
+import { authenticateToken, optionalAuth, generateToken, type AuthRequest } from "./auth";
+import bcrypt from "bcryptjs";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
 import Papa from "papaparse";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
 
 // Configure multer for file uploads
 const upload = multer({
@@ -25,8 +29,117 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Translate medical diagnosis using ClinicalBERT algorithm
-  app.post("/api/translate", async (req, res) => {
+  
+  // ========== AUTH ROUTES ==========
+  
+  // Register new user
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(validatedData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "El email ya está registrado" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+      
+      // Create user
+      const user = await storage.createUser({
+        ...validatedData,
+        password: hashedPassword,
+      });
+
+      // Generate token
+      const token = generateToken({
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role || "patient",
+      });
+
+      // Don't send password back
+      const { password, ...userWithoutPassword } = user;
+      
+      res.status(201).json({
+        user: userWithoutPassword,
+        token,
+      });
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Datos de registro inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Error al registrar usuario" });
+    }
+  });
+
+  // Login user
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = loginSchema.parse(req.body);
+      
+      // Find user
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Email o contraseña incorrectos" });
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Email o contraseña incorrectos" });
+      }
+
+      // Update last login
+      await storage.updateUserLastLogin(user.id);
+
+      // Generate token
+      const token = generateToken({
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role || "patient",
+      });
+
+      // Don't send password back
+      const { password: _, ...userWithoutPassword } = user;
+      
+      res.json({
+        user: userWithoutPassword,
+        token,
+      });
+    } catch (error: any) {
+      console.error("Login error:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Datos de login inválidos" });
+      }
+      res.status(500).json({ message: "Error al iniciar sesión" });
+    }
+  });
+
+  // Get current user
+  app.get("/api/auth/me", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Get user error:", error);
+      res.status(500).json({ message: "Error al obtener usuario" });
+    }
+  });
+
+  // ========== TRANSLATION ROUTES ==========
+  
+  // Translate medical diagnosis using ClinicalBERT algorithm (NO requiere auth - funciona sin login)
+  app.post("/api/translate", optionalAuth, async (req: AuthRequest, res) => {
     try {
       const { originalText } = req.body;
       
@@ -37,11 +150,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Usar algoritmo ClinicalBERT local para traducción médica
       const result = medicalTranslator.translate(originalText);
       
+      // Guardar con userId si está autenticado, null si es anónimo
       const diagnosis = await storage.createDiagnosis({
         originalText,
         translatedText: result.translatedText,
         confidence: result.confidence,
-      });
+      }, req.userId || undefined);
 
       res.json(diagnosis);
     } catch (error) {
@@ -133,10 +247,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Process file based on type
       if (fileType === '.pdf') {
-        const dataBuffer = fs.readFileSync(filePath);
-        const pdfParse = (await import('pdf-parse')).default;
-        const pdfData = await pdfParse(dataBuffer);
-        fileContent = pdfData.text;
+        try {
+          const dataBuffer = fs.readFileSync(filePath);
+          // Usar require en lugar de import dinámico para evitar bug de pdf-parse
+          const pdfParse = require('pdf-parse');
+          const pdfData = await pdfParse(dataBuffer);
+          fileContent = pdfData.text;
+        } catch (pdfError: any) {
+          console.error("Error parsing PDF:", pdfError);
+          fs.unlinkSync(filePath);
+          return res.status(500).json({ 
+            message: "Error al procesar el PDF. Verifica que el archivo no esté dañado o protegido." 
+          });
+        }
       } else if (fileType === '.csv' || req.file.mimetype.includes('csv')) {
         const csvContent = fs.readFileSync(filePath, 'utf8');
         const parsed = Papa.parse(csvContent, { header: true });

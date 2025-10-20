@@ -6,14 +6,22 @@ import {
   type QuickTranslation,
   type InsertQuickTranslation,
   type ClinicalAnalysis,
-  type InsertClinicalAnalysis
+  type InsertClinicalAnalysis,
+  type User,
+  type InsertUser
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
+  // User operations
+  createUser(user: InsertUser): Promise<User>;
+  getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  updateUserLastLogin(id: string): Promise<void>;
+  
   // Diagnosis operations
-  createDiagnosis(diagnosis: InsertDiagnosis): Promise<Diagnosis>;
-  getDiagnoses(): Promise<Diagnosis[]>;
+  createDiagnosis(diagnosis: InsertDiagnosis, userId?: string): Promise<Diagnosis>;
+  getDiagnoses(userId?: string): Promise<Diagnosis[]>;
   getDiagnosis(id: string): Promise<Diagnosis | undefined>;
   
   // Health record operations
@@ -32,12 +40,16 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  private users: Map<string, User> = new Map();
   private diagnoses: Map<string, Diagnosis> = new Map();
   private healthRecords: Map<string, HealthRecord> = new Map();
   private quickTranslations: Map<string, QuickTranslation> = new Map();
   private clinicalAnalyses: Map<string, ClinicalAnalysis> = new Map();
 
   constructor() {
+    // Initialize with sample users for testing
+    this.initializeSampleUsers();
+    
     // Initialize with some quick translations
     const defaultQuickTranslations = [
       { medical: "Hipertensión", simple: "Presión alta", category: "cardiovascular" },
@@ -54,6 +66,7 @@ export class MemStorage implements IStorage {
     // Initialize with a sample health record
     const sampleHealthRecord: HealthRecord = {
       id: randomUUID(),
+      userId: null,
       patientName: "Dr. María García",
       age: 45,
       conditions: ["Hipertensión", "Diabetes Tipo 2"],
@@ -84,11 +97,80 @@ export class MemStorage implements IStorage {
     this.healthRecords.set(sampleHealthRecord.id, sampleHealthRecord);
   }
 
-  async createDiagnosis(insertDiagnosis: InsertDiagnosis): Promise<Diagnosis> {
+  // Initialize sample users with pre-hashed passwords
+  private async initializeSampleUsers() {
+    const bcrypt = await import('bcryptjs');
+    
+    // USUARIO DE PRUEBA (solo paciente - la app es para pacientes)
+    const sampleUsers = [
+      {
+        email: "paciente@test.com",
+        password: "paciente123", // Contraseña: paciente123
+        fullName: "María González",
+        role: "patient"
+      }
+    ];
+
+    for (const userData of sampleUsers) {
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+      const id = randomUUID();
+      const user: User = {
+        id,
+        email: userData.email,
+        password: hashedPassword,
+        fullName: userData.fullName,
+        role: userData.role as "doctor" | "patient" | "admin",
+        isVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLogin: null,
+      };
+      this.users.set(id, user);
+    }
+  }
+
+  // ========== USER OPERATIONS ==========
+  
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = randomUUID();
+    const user: User = {
+      ...insertUser,
+      id,
+      role: insertUser.role || "patient",
+      isVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastLogin: null,
+    };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.email === email);
+  }
+
+  async updateUserLastLogin(id: string): Promise<void> {
+    const user = this.users.get(id);
+    if (user) {
+      user.lastLogin = new Date();
+      user.updatedAt = new Date();
+      this.users.set(id, user);
+    }
+  }
+
+  // ========== DIAGNOSIS OPERATIONS ==========
+
+  async createDiagnosis(insertDiagnosis: InsertDiagnosis, userId?: string): Promise<Diagnosis> {
     const id = randomUUID();
     const diagnosis: Diagnosis = {
       ...insertDiagnosis,
       id,
+      userId: userId || null,
       confidence: insertDiagnosis.confidence ?? null,
       createdAt: new Date(),
     };
@@ -96,8 +178,13 @@ export class MemStorage implements IStorage {
     return diagnosis;
   }
 
-  async getDiagnoses(): Promise<Diagnosis[]> {
-    return Array.from(this.diagnoses.values()).sort((a, b) => 
+  async getDiagnoses(userId?: string): Promise<Diagnosis[]> {
+    const allDiagnoses = Array.from(this.diagnoses.values());
+    const filtered = userId 
+      ? allDiagnoses.filter(d => d.userId === userId)
+      : allDiagnoses;
+    
+    return filtered.sort((a, b) => 
       new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
     );
   }
@@ -111,10 +198,21 @@ export class MemStorage implements IStorage {
     const record: HealthRecord = {
       ...insertRecord,
       id,
+      userId: (insertRecord as any).userId ?? null,
       age: insertRecord.age ?? null,
-      conditions: Array.isArray(insertRecord.conditions) ? insertRecord.conditions : null,
-      vitalSigns: insertRecord.vitalSigns ?? null,
-      medications: Array.isArray(insertRecord.medications) ? insertRecord.medications : null,
+      conditions: Array.isArray(insertRecord.conditions) ? insertRecord.conditions as string[] : null,
+      vitalSigns: insertRecord.vitalSigns ? insertRecord.vitalSigns as {
+        bloodPressure?: { systolic: number; diastolic: number; date: string };
+        glucose?: { value: number; unit: string; date: string };
+        weight?: { value: number; unit: string; date: string };
+      } : null,
+      medications: Array.isArray(insertRecord.medications) ? insertRecord.medications as {
+        name: string;
+        dosage: string;
+        instructions: string;
+        taken: boolean;
+        time: string;
+      }[] : null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -134,9 +232,19 @@ export class MemStorage implements IStorage {
       ...existing,
       ...updateRecord,
       age: updateRecord.age !== undefined ? updateRecord.age : existing.age,
-      conditions: updateRecord.conditions !== undefined ? Array.isArray(updateRecord.conditions) ? updateRecord.conditions : null : existing.conditions,
-      vitalSigns: updateRecord.vitalSigns !== undefined ? updateRecord.vitalSigns : existing.vitalSigns,
-      medications: updateRecord.medications !== undefined ? Array.isArray(updateRecord.medications) ? updateRecord.medications : null : existing.medications,
+      conditions: updateRecord.conditions !== undefined ? Array.isArray(updateRecord.conditions) ? updateRecord.conditions as string[] : null : existing.conditions,
+      vitalSigns: updateRecord.vitalSigns !== undefined ? updateRecord.vitalSigns as {
+        bloodPressure?: { systolic: number; diastolic: number; date: string };
+        glucose?: { value: number; unit: string; date: string };
+        weight?: { value: number; unit: string; date: string };
+      } : existing.vitalSigns,
+      medications: updateRecord.medications !== undefined ? Array.isArray(updateRecord.medications) ? updateRecord.medications as {
+        name: string;
+        dosage: string;
+        instructions: string;
+        taken: boolean;
+        time: string;
+      }[] : null : existing.medications,
       updatedAt: new Date(),
     };
     this.healthRecords.set(id, updated);
@@ -163,12 +271,13 @@ export class MemStorage implements IStorage {
     const analysis: ClinicalAnalysis = {
       ...insertAnalysis,
       id,
+      userId: (insertAnalysis as any).userId ?? null,
       confidence: insertAnalysis.confidence ?? null,
       keyFindings: insertAnalysis.keyFindings ? {
-        conditions: Array.isArray(insertAnalysis.keyFindings.conditions) ? insertAnalysis.keyFindings.conditions : [],
-        medications: Array.isArray(insertAnalysis.keyFindings.medications) ? insertAnalysis.keyFindings.medications : [],
-        vitals: Array.isArray(insertAnalysis.keyFindings.vitals) ? insertAnalysis.keyFindings.vitals : [],
-        recommendations: Array.isArray(insertAnalysis.keyFindings.recommendations) ? insertAnalysis.keyFindings.recommendations : [],
+        conditions: Array.isArray(insertAnalysis.keyFindings.conditions) ? insertAnalysis.keyFindings.conditions as string[] : [],
+        medications: Array.isArray(insertAnalysis.keyFindings.medications) ? insertAnalysis.keyFindings.medications as string[] : [],
+        vitals: Array.isArray(insertAnalysis.keyFindings.vitals) ? insertAnalysis.keyFindings.vitals as string[] : [],
+        recommendations: Array.isArray(insertAnalysis.keyFindings.recommendations) ? insertAnalysis.keyFindings.recommendations as string[] : [],
       } : null,
       createdAt: new Date(),
     };

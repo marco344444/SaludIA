@@ -1,0 +1,9 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#3b82f6" rx="128"/>
+  <g transform="translate(256,256)">
+    <circle cx="0" cy="0" r="140" fill="white" opacity="0.2"/>
+    <path d="M-60,-80 L-60,80 L60,80 L60,40 L0,40 L0,0 L40,0 L40,-40 L0,-40 L0,-80 Z" fill="white"/>
+    <circle cx="50" cy="-60" r="20" fill="white"/>
+  </g>
+  <text x="256" y="440" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle">MediTranslate</text>
+</svg>

@@ -1,0 +1,148 @@
+HISTORIAL CLÍNICO DEL PACIENTE
+
+===========================================
+DATOS DEL PACIENTE
+===========================================
+Nombre: Juan Pérez García
+Edad: 45 años
+Género: Masculino
+Fecha de Consulta: 20 de Octubre de 2025
+Médico Tratante: Dra. María Rodríguez
+
+===========================================
+DIAGNÓSTICOS ACTUALES
+===========================================
+
+1. Hipertensión arterial sistólica
+   - Clasificación: Grado II
+   - Tiempo de evolución: 3 años
+
+2. Diabetes mellitus tipo 2
+   - Diagnóstico: Hace 2 años
+   - Control: Regular
+
+3. Obesidad grado II
+   - IMC: 31.0 kg/m²
+
+4. Dislipidemia mixta
+   - Colesterol total: 245 mg/dL
+   - Triglicéridos: 190 mg/dL
+
+===========================================
+SIGNOS VITALES - ÚLTIMA CONSULTA
+===========================================
+
+Presión arterial: 150/95 mmHg
+Frecuencia cardíaca: 82 lpm
+Glucosa en ayunas: 180 mg/dL
+Peso: 95 kg
+Talla: 1.75 m
+IMC: 31.0 kg/m²
+Temperatura: 36.5°C
+Saturación de oxígeno: 98%
+
+===========================================
+MEDICAMENTOS PRESCRITOS
+===========================================
+
+1. Enalapril 10mg
+   - Dosis: 1 comprimido cada 12 horas
+   - Vía: Oral
+   - Indicación: Control de hipertensión arterial
+
+2. Metformina 850mg
+   - Dosis: 1 comprimido con el desayuno y cena
+   - Vía: Oral
+   - Indicación: Control de glucemia
+
+3. Atorvastatina 20mg
+   - Dosis: 1 comprimido antes de dormir
+   - Vía: Oral
+   - Indicación: Control de colesterol
+
+4. Ácido acetilsalicílico 100mg (Aspirina)
+   - Dosis: 1 comprimido diario con el desayuno
+   - Vía: Oral
+   - Indicación: Prevención cardiovascular
+
+===========================================
+ANÁLISIS DE LABORATORIO RECIENTES
+===========================================
+
+Fecha: 15 de Octubre de 2025
+
+BIOQUÍMICA:
+- Glucosa en ayunas: 180 mg/dL (elevada)
+- Hemoglobina glicosilada (HbA1c): 7.8% (mal control)
+- Colesterol total: 245 mg/dL (elevado)
+- HDL colesterol: 38 mg/dL (bajo)
+- LDL colesterol: 160 mg/dL (elevado)
+- Triglicéridos: 190 mg/dL (elevados)
+- Creatinina: 1.1 mg/dL (normal)
+- Urea: 42 mg/dL (normal)
+- Ácido úrico: 6.5 mg/dL (normal)
+
+HEMOGRAMA:
+- Hemoglobina: 14.2 g/dL (normal)
+- Hematocrito: 42% (normal)
+- Leucocitos: 7,200/mm³ (normal)
+- Plaquetas: 245,000/mm³ (normal)
+
+FUNCIÓN HEPÁTICA:
+- TGO (AST): 28 U/L (normal)
+- TGP (ALT): 32 U/L (normal)
+
+===========================================
+RECOMENDACIONES MÉDICAS
+===========================================
+
+1. Continuar con tratamiento farmacológico según indicaciones
+
+2. DIETA:
+   - Reducir consumo de sodio (menos de 2g al día)
+   - Limitar azúcares simples y carbohidratos refinados
+   - Aumentar consumo de verduras y frutas
+   - Preferir grasas saludables (aceite de oliva, aguacate, pescado)
+   - Controlar porciones de alimentos
+
+3. ACTIVIDAD FÍSICA:
+   - Realizar caminata de 30 minutos diarios
+   - Aumentar actividad física gradualmente
+   - Evitar sedentarismo prolongado
+
+4. MONITOREO EN CASA:
+   - Control de glucosa en ayunas 2 veces por semana
+   - Medición de presión arterial diaria (mañana y noche)
+   - Registro de peso semanal
+
+5. SEGUIMIENTO:
+   - Próxima consulta médica en 3 meses
+   - Repetir análisis de laboratorio en 2 meses
+   - Acudir a nutricionista para plan alimenticio personalizado
+
+===========================================
+OBSERVACIONES ADICIONALES
+===========================================
+
+El paciente presenta factores de riesgo cardiovascular moderado-alto. 
+Es fundamental el apego al tratamiento farmacológico y cambios en el 
+estilo de vida para prevenir complicaciones cardiovasculares y renales.
+
+Se recomienda vigilancia estrecha de la función renal mediante 
+determinación de creatinina sérica y microalbuminuria cada 6 meses.
+
+Se debe continuar con prevención primaria de eventos cardiovasculares 
+mediante antiagregación plaquetaria con ácido acetilsalicílico.
+
+El control metabólico actual (HbA1c 7.8%) sugiere la necesidad de 
+reforzar medidas dietéticas y valorar ajuste de dosis de Metformina 
+en próxima consulta si no hay mejoría.
+
+===========================================
+FIRMA MÉDICA
+===========================================
+
+Dra. María Rodríguez
+Médico Internista
+Cédula Profesional: 1234567
+Fecha: 20 de Octubre de 2025
