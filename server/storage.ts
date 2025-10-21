@@ -27,6 +27,7 @@ export interface IStorage {
   // Health record operations
   createHealthRecord(record: InsertHealthRecord): Promise<HealthRecord>;
   getHealthRecord(id: string): Promise<HealthRecord | undefined>;
+  getHealthRecordByUser(userId: string): Promise<HealthRecord | undefined>;
   updateHealthRecord(id: string, record: Partial<InsertHealthRecord>): Promise<HealthRecord | undefined>;
   
   // Quick translation operations
@@ -222,6 +223,10 @@ export class MemStorage implements IStorage {
 
   async getHealthRecord(id: string): Promise<HealthRecord | undefined> {
     return this.healthRecords.get(id);
+  }
+
+  async getHealthRecordByUser(userId: string): Promise<HealthRecord | undefined> {
+    return Array.from(this.healthRecords.values()).find(r => (r.userId as any) === userId);
   }
 
   async updateHealthRecord(id: string, updateRecord: Partial<InsertHealthRecord>): Promise<HealthRecord | undefined> {

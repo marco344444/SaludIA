@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useHealthData } from "@/hooks/use-health-data";
-import { Heart, Thermometer, Weight, PillBottle, Edit, Plus, Activity, Save, X, Check } from "lucide-react";
+import { Heart, Thermometer, Weight, PillBottle, Edit, Plus, Activity, Save, X, Check, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function HealthDashboard() {
@@ -16,6 +16,7 @@ export default function HealthDashboard() {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [addVitalsOpen, setAddVitalsOpen] = useState(false);
   const [manageMedsOpen, setManageMedsOpen] = useState(false);
+  const [manageConditionsOpen, setManageConditionsOpen] = useState(false);
   
   // Estados para formularios
   const [age, setAge] = useState("");
@@ -27,6 +28,7 @@ export default function HealthDashboard() {
   const [medDosage, setMedDosage] = useState("");
   const [medInstructions, setMedInstructions] = useState("");
   const [medTime, setMedTime] = useState("");
+  const [newCondition, setNewCondition] = useState("");
 
   // Funciones para manejar los formularios
   const handleUpdateProfile = async () => {
@@ -168,6 +170,39 @@ export default function HealthDashboard() {
     }
   };
 
+  const handleAddCondition = async () => {
+    const condition = newCondition.trim();
+    if (!condition) return;
+    if (!healthRecord.data?.id) return;
+    try {
+      const current = Array.isArray(healthRecord.data.conditions) ? healthRecord.data.conditions : [];
+      await updateHealthRecord.mutateAsync({
+        id: healthRecord.data.id,
+        data: { conditions: [...current, condition] },
+      });
+      setNewCondition("");
+      toast({ title: "✅ Condición agregada", description: condition });
+    } catch {
+      toast({ title: "Error", description: "No se pudo agregar la condición", variant: "destructive" });
+    }
+  };
+
+  const handleRemoveCondition = async (index: number) => {
+    if (!healthRecord.data?.id) return;
+    try {
+      const current = Array.isArray(healthRecord.data.conditions) ? healthRecord.data.conditions : [];
+      const removed = current[index];
+      const next = current.filter((_, i) => i !== index);
+      await updateHealthRecord.mutateAsync({
+        id: healthRecord.data.id,
+        data: { conditions: next },
+      });
+      toast({ title: "🗑️ Condición eliminada", description: removed });
+    } catch {
+      toast({ title: "Error", description: "No se pudo eliminar la condición", variant: "destructive" });
+    }
+  };
+
   const handleToggleMedication = async (index: number) => {
     if (!healthRecord.data?.id) return;
     
@@ -256,7 +291,7 @@ export default function HealthDashboard() {
             </Dialog>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-2 gap-4 mb-2">
             <div className="text-center">
               <div className="text-2xl font-bold text-primary" data-testid="text-age">
                 {record.age}
@@ -271,8 +306,48 @@ export default function HealthDashboard() {
             </div>
           </div>
 
+          <div className="flex justify-end gap-2 mb-4">
+            <Dialog open={manageConditionsOpen} onOpenChange={setManageConditionsOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" data-testid="button-manage-conditions">
+                  <Plus className="w-4 h-4 mr-1" /> Gestionar condiciones
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Condiciones de salud</DialogTitle>
+                  <DialogDescription>Agrega o elimina condiciones clínicas</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Ej: Hipertensión"
+                      value={newCondition}
+                      onChange={(e) => setNewCondition(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddCondition()}
+                    />
+                    <Button onClick={handleAddCondition}><Save className="w-4 h-4 mr-1" />Agregar</Button>
+                  </div>
+                  <div className="space-y-2">
+                    {(record.conditions || []).length === 0 && (
+                      <p className="text-sm text-muted-foreground">Aún no tienes condiciones registradas.</p>
+                    )}
+                    {(record.conditions || []).map((c: string, i: number) => (
+                      <div key={i} className="flex items-center justify-between p-2 border rounded-lg">
+                        <span className="text-sm text-foreground">{c}</span>
+                        <Button variant="ghost" size="icon" onClick={() => handleRemoveCondition(i)} aria-label={`Eliminar condición ${c}`}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
           <div className="space-y-3">
-            {record.conditions?.map((condition: any, index: number) => (
+            {(record.conditions || []).map((condition: any, index: number) => (
               <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
@@ -288,6 +363,11 @@ export default function HealthDashboard() {
                 <div className="text-accent text-sm font-medium">Estable</div>
               </div>
             ))}
+            {(record.conditions || []).length === 0 && (
+              <div className="p-3 bg-muted/20 rounded-lg text-sm text-muted-foreground">
+                No tienes condiciones registradas. Usa "Gestionar condiciones" para agregar las tuyas.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

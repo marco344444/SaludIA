@@ -7,6 +7,17 @@ export interface MedicalTranslation {
 
 // Diccionario médico extenso basado en terminología clínica
 const medicalDictionary: Record<string, string> = {
+  // Inmunológico y hepático enriquecido
+  "ictericia": "coloración amarilla de la piel y ojos por acumulación de bilirrubina (problema en hígado o vías biliares)",
+  "reacción exagerada del sistema inmune": "respuesta del cuerpo que puede causar síntomas como alergias, inflamación o daño a órganos",
+  "reacción alérgica": "respuesta excesiva del sistema inmune a algo normalmente inofensivo",
+  "autoinmune": "cuando el sistema inmune ataca por error al propio cuerpo",
+  "hepatitis": "inflamación del hígado, puede causar ictericia",
+  "colestasis": "interrupción o disminución del flujo de bilis, puede causar ictericia",
+  "bilirrubina": "sustancia amarilla producida por el hígado, su exceso causa ictericia",
+  "prurito": "picazón intensa en la piel, común en enfermedades hepáticas",
+  "inmunodeficiencia": "sistema inmune débil o que no funciona bien",
+  "inmunosupresión": "disminución de la actividad del sistema inmune, aumenta riesgo de infecciones",
   // Cardiovascular
   "hipertensión arterial": "presión alta en las arterias",
   "hipertensión arterial sistólica": "presión alta cuando el corazón late",
@@ -70,7 +81,6 @@ const medicalDictionary: Record<string, string> = {
   "síndrome del intestino irritable": "problemas digestivos con dolor abdominal",
   "enfermedad inflamatoria intestinal": "inflamación crónica del intestino",
   "colitis": "inflamación del intestino grueso",
-  "hepatitis": "inflamación del hígado",
   "cirrosis": "cicatrices en el hígado",
   "pancreatitis": "inflamación del páncreas",
   "colelitiasis": "piedras en la vesícula",
@@ -337,151 +347,185 @@ export class MedicalTranslator {
       vitals: [] as string[],
       recommendations: [] as string[]
     };
-    
     let analysis = "";
     let confidence = 70;
     
-    // PASO 1: Detectar si existe una sección dedicada a signos vitales
-    const vitalsSection = /(?:SIGNOS VITALES|VITAL SIGNS|CONSTANTES VITALES|EXAMEN FÍSICO|EXPLORACIÓN FÍSICA|DATOS VITALES)/i.test(content);
-    
-    // PASO 2: Si no hay sección de signos vitales, NO buscar signos vitales aislados
-    // Esto evita falsos positivos como "bajó 5 kg" o menciones de peso en contexto narrativo
-    
-    // Analizar contenido línea por línea
-    const lines = content.split('\n');
-    let inVitalsSection = false;
-    let sectionLineCount = 0;
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const lowerLine = line.toLowerCase();
+    // Lógica específica para CSV: buscar datos en columnas
+    if (fileType === 'csv') {
+      const lines = content.split('\n');
+      const header = lines[0]?.toLowerCase() || '';
       
-      // Detectar inicio de sección de signos vitales
-      if (/^(?:SIGNOS VITALES|VITAL SIGNS|CONSTANTES VITALES|EXAMEN FÍSICO|EXPLORACIÓN FÍSICA|DATOS VITALES)/i.test(line.trim())) {
-        inVitalsSection = true;
-        sectionLineCount = 0;
-        continue;
+      // Detectar índices de columnas relevantes
+      const columns = header.split(',').map(col => col.trim());
+      const presionSistolicaIdx = columns.findIndex(col => /presión.*sistólica|systolic/i.test(col));
+      const presionDiastolicaIdx = columns.findIndex(col => /presión.*diastólica|diastolic/i.test(col));
+      const glucosaIdx = columns.findIndex(col => /glucosa|glucose|azúcar/i.test(col));
+      const pesoIdx = columns.findIndex(col => /peso|weight|kg/i.test(col));
+      const medicamentoIdx = columns.findIndex(col => /medicamento|medication|fármaco|droga/i.test(col));
+      
+      // Arrays para calcular promedios
+      const presionesS: number[] = [];
+      const presionesD: number[] = [];
+      const glucosas: number[] = [];
+      const pesos: number[] = [];
+      
+      // Analizar cada fila de datos
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+        
+        const values = line.split(',').map(val => val.trim());
+        
+        // Recolectar presión arterial
+        if (presionSistolicaIdx >= 0 && presionDiastolicaIdx >= 0) {
+          const sistolica = values[presionSistolicaIdx];
+          const diastolica = values[presionDiastolicaIdx];
+          if (sistolica && diastolica && !isNaN(Number(sistolica)) && !isNaN(Number(diastolica))) {
+            presionesS.push(Number(sistolica));
+            presionesD.push(Number(diastolica));
+          }
+        }
+        
+        // Recolectar glucosa
+        if (glucosaIdx >= 0) {
+          const glucosa = values[glucosaIdx];
+          if (glucosa && !isNaN(Number(glucosa))) {
+            glucosas.push(Number(glucosa));
+          }
+        }
+        
+        // Recolectar peso
+        if (pesoIdx >= 0) {
+          const peso = values[pesoIdx];
+          if (peso && !isNaN(Number(peso))) {
+            pesos.push(Number(peso));
+          }
+        }
+        
+        // Extraer medicamentos únicos
+        if (medicamentoIdx >= 0) {
+          const medicamento = values[medicamentoIdx];
+          if (medicamento && medicamento.length > 2) {
+            findings.medications.push(medicamento);
+          }
+        }
       }
       
-      // Detectar fin de sección (nueva sección comienza)
-      if (inVitalsSection && /^[A-ZÁÉÍÓÚÑ\s]{10,}:?$/.test(line.trim())) {
-        inVitalsSection = false;
+      // Generar resumen estadístico de signos vitales
+      if (presionesS.length > 0 && presionesD.length > 0) {
+        const promedioS = Math.round(presionesS.reduce((a, b) => a + b, 0) / presionesS.length);
+        const promedioD = Math.round(presionesD.reduce((a, b) => a + b, 0) / presionesD.length);
+        const minS = Math.min(...presionesS);
+        const maxS = Math.max(...presionesS);
+        findings.vitals.push(`Presión arterial (${presionesS.length} registros): Promedio ${promedioS}/${promedioD} mmHg, Rango ${minS}-${maxS}/${Math.min(...presionesD)}-${Math.max(...presionesD)} mmHg`);
       }
       
-      // Contar líneas en la sección (máximo 20 líneas para signos vitales)
-      if (inVitalsSection) {
-        sectionLineCount++;
-        if (sectionLineCount > 20) {
+      if (glucosas.length > 0) {
+        const promedio = Math.round(glucosas.reduce((a, b) => a + b, 0) / glucosas.length);
+        const min = Math.min(...glucosas);
+        const max = Math.max(...glucosas);
+        findings.vitals.push(`Glucosa (${glucosas.length} registros): Promedio ${promedio} mg/dL, Rango ${min}-${max} mg/dL`);
+      }
+      
+      if (pesos.length > 0) {
+        const promedio = (pesos.reduce((a, b) => a + b, 0) / pesos.length).toFixed(1);
+        const min = Math.min(...pesos);
+        const max = Math.max(...pesos);
+        findings.vitals.push(`Peso (${pesos.length} registros): Promedio ${promedio} kg, Rango ${min}-${max} kg`);
+      }
+    } else {
+      // Lógica para PDF: buscar en secciones
+      const vitalsSection = /(?:SIGNOS VITALES|VITAL SIGNS|CONSTANTES VITALES|EXAMEN FÍSICO|EXPLORACIÓN FÍSICA|DATOS VITALES)/i.test(content);
+      const lines = content.split('\n');
+      let inVitalsSection = false;
+      let sectionLineCount = 0;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const lowerLine = line.toLowerCase();
+        
+        // Detectar inicio de sección de signos vitales
+        if (/^(?:SIGNOS VITALES|VITAL SIGNS|CONSTANTES VITALES|EXAMEN FÍSICO|EXPLORACIÓN FÍSICA|DATOS VITALES)/i.test(line.trim())) {
+          inVitalsSection = true;
+          sectionLineCount = 0;
+          continue;
+        }
+        
+        // Detectar fin de sección
+        if (inVitalsSection && /^[A-ZÁÉÍÓÚÑ\s]{10,}:?$/.test(line.trim())) {
           inVitalsSection = false;
         }
-      }
-      
-      // Detectar condiciones médicas
-      for (const term in medicalDictionary) {
-        if (lowerLine.includes(term)) {
-          findings.conditions.push(medicalDictionary[term]);
-        }
-      }
-      
-      // Detectar medicamentos (patrones comunes) - mejorado
-      if (/\b(?:mg|ml|mcg|ui|comprimido|cápsula|tableta|jarabe)\b/i.test(line)) {
-        // Buscar nombre de medicamento seguido de dosis
-        const medicationMatch = line.match(/\b([A-Z][a-z]+(?:ina|ol|pam|mab|ril|tan|vir|din|xin|mida|pina|sona)?)\s+\d+\s*(?:mg|ml|mcg|ui|gr)\b/i);
-        if (medicationMatch) {
-          findings.medications.push(medicationMatch[0]);
-        }
-      }
-      
-      // ====== SIGNOS VITALES: SOLO si estamos en la sección correcta ======
-      if (inVitalsSection) {
-        // Presión arterial
-        if (/presión|tensión|pa\s*[:=]|blood pressure|bp\s*[:=]/i.test(lowerLine)) {
-          const bpMatch = line.match(/(\d{2,3})\s*[\/\-]\s*(\d{2,3})\s*(?:mmhg)?/i);
-          if (bpMatch && parseInt(bpMatch[1]) > 70 && parseInt(bpMatch[1]) < 250) {
-            findings.vitals.push(`Presión arterial: ${bpMatch[1]}/${bpMatch[2]} mmHg`);
+        
+        // Contar líneas en la sección
+        if (inVitalsSection) {
+          sectionLineCount++;
+          if (sectionLineCount > 20) {
+            inVitalsSection = false;
           }
         }
         
-        // Glucosa
-        if (/glucosa|glicemia|glucemia|glucose/i.test(lowerLine)) {
-          const glucoseMatch = line.match(/(\d+(?:\.\d+)?)\s*(?:mg\/dl|mg\/dL|mmol\/l)?/i);
-          if (glucoseMatch && parseFloat(glucoseMatch[1]) > 40 && parseFloat(glucoseMatch[1]) < 600) {
-            findings.vitals.push(`Glucosa: ${glucoseMatch[1]} mg/dL`);
+        // Detectar condiciones médicas
+        for (const term in medicalDictionary) {
+          if (lowerLine.includes(term)) {
+            findings.conditions.push(medicalDictionary[term]);
           }
         }
         
-        // Peso - MUY ESTRICTO: solo formato "Peso: XX kg" o en tabla
-        if (/^[\s\-\*•]*peso\s*[:=]\s*\d+/i.test(lowerLine) || /\bpeso\s*[:=]\s*\d+\s*kg\b/i.test(lowerLine)) {
-          const weightMatch = line.match(/peso\s*[:=]\s*(\d+(?:\.\d+)?)\s*(?:kg)?/i);
-          if (weightMatch && parseFloat(weightMatch[1]) > 20 && parseFloat(weightMatch[1]) < 300) {
-            findings.vitals.push(`Peso: ${weightMatch[1]} kg`);
+        // Detectar medicamentos
+        if (/\b(?:mg|ml|mcg|ui|comprimido|cápsula|tableta|jarabe)\b/i.test(line)) {
+          const medicationMatch = line.match(/\b([A-Z][a-z]+(?:ina|ol|pam|mab|ril|tan|vir|din|xin|mida|pina|sona)?)\s+\d+\s*(?:mg|ml|mcg|ui|gr)\b/i);
+          if (medicationMatch) {
+            findings.medications.push(medicationMatch[0]);
           }
         }
         
-        // Talla/Altura
-        if (/talla|altura|height/i.test(lowerLine)) {
-          const heightMatch = line.match(/(\d+(?:\.\d+)?)\s*(?:cm|m|metros)/i);
-          if (heightMatch) {
-            const height = parseFloat(heightMatch[1]);
-            if (height > 1.2 && height < 2.5) {
-              findings.vitals.push(`Talla: ${heightMatch[1]} m`);
-            } else if (height > 120 && height < 250) {
-              findings.vitals.push(`Talla: ${heightMatch[1]} cm`);
+        // Detectar signos vitales en sección
+        if (vitalsSection && inVitalsSection) {
+          // Presión arterial
+          if (/presión|tensión|pa\s*[:=]|blood pressure|bp\s*[:=]/i.test(lowerLine)) {
+            const bpMatch = line.match(/(\d{2,3})\s*[\/-]\s*(\d{2,3})\s*(?:mmhg)?/i);
+            if (bpMatch && parseInt(bpMatch[1]) > 70 && parseInt(bpMatch[1]) < 250) {
+              findings.vitals.push(`Presión arterial: ${bpMatch[1]}/${bpMatch[2]} mmHg`);
             }
           }
-        }
-        
-        // Temperatura
-        if (/temperatura|temp\.|fiebre/i.test(lowerLine)) {
-          const tempMatch = line.match(/(\d+(?:\.\d+)?)\s*[°º]?\s*[cC]/);
-          if (tempMatch && parseFloat(tempMatch[1]) > 34 && parseFloat(tempMatch[1]) < 43) {
-            findings.vitals.push(`Temperatura: ${tempMatch[1]}°C`);
-          }
-        }
-        
-        // Frecuencia cardíaca
-        if (/frecuencia cardíaca|fc\s*[:=]|pulso|heart rate|hr\s*[:=]/i.test(lowerLine)) {
-          const hrMatch = line.match(/(\d+)\s*(?:lpm|bpm|ppm|latidos)/i);
-          if (hrMatch && parseFloat(hrMatch[1]) > 30 && parseFloat(hrMatch[1]) < 250) {
-            findings.vitals.push(`Frecuencia cardíaca: ${hrMatch[1]} lpm`);
-          }
-        }
-        
-        // Frecuencia respiratoria
-        if (/frecuencia respiratoria|fr\s*[:=]|respiratory rate|rr\s*[:=]/i.test(lowerLine)) {
-          const rrMatch = line.match(/(\d+)\s*(?:rpm|respiraciones)/i);
-          if (rrMatch && parseFloat(rrMatch[1]) > 8 && parseFloat(rrMatch[1]) < 60) {
-            findings.vitals.push(`Frecuencia respiratoria: ${rrMatch[1]} rpm`);
-          }
-        }
-        
-        // Saturación de oxígeno
-        if (/saturación|spo2|sat\s*o2|oxygen saturation/i.test(lowerLine)) {
+          
+          // Saturación O2
           const satMatch = line.match(/(\d+)\s*%/);
           if (satMatch && parseFloat(satMatch[1]) > 70 && parseFloat(satMatch[1]) <= 100) {
             findings.vitals.push(`Saturación O2: ${satMatch[1]}%`);
           }
         }
-      }
-      
-      // Detectar recomendaciones
-      if (/recomienda|sugiere|debe|continuar|suspender/i.test(lowerLine)) {
-        const cleanedLine = line.trim().replace(/^[-•*]\s*/, '');
-        if (cleanedLine.length > 15 && cleanedLine.length < 300) {
-          findings.recommendations.push(cleanedLine);
+        
+        // Detectar recomendaciones
+        if (/recomienda|sugiere|debe|continuar|suspender/i.test(lowerLine)) {
+          const cleanedLine = line.trim().replace(/^[-•*]\s*/, '');
+          if (cleanedLine.length > 15 && cleanedLine.length < 300) {
+            findings.recommendations.push(cleanedLine);
+          }
         }
       }
     }
     
+    // Detectar condiciones médicas en todo el contenido (CSV y PDF)
+    const allText = content.toLowerCase();
+    for (const term in medicalDictionary) {
+      if (allText.includes(term)) {
+        findings.conditions.push(medicalDictionary[term]);
+      }
+    }
     // Eliminar duplicados
     findings.conditions = Array.from(new Set(findings.conditions));
     findings.medications = Array.from(new Set(findings.medications));
     findings.vitals = Array.from(new Set(findings.vitals));
     findings.recommendations = Array.from(new Set(findings.recommendations));
-    
     // Generar análisis
     analysis = this.generateClinicalSummary(findings);
-    
+    // Ajustar confianza si hay hallazgos
+    if (findings.conditions.length > 0 || findings.medications.length > 0 || findings.vitals.length > 0) {
+      confidence = 80;
+    } else {
+      confidence = 40;
+    }
     return {
       analysis,
       keyFindings: findings,

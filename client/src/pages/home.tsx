@@ -1,16 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import TranslationForm from "@/components/translation-form";
 import HealthDashboard from "@/components/health-dashboard";
 import HistoryTab from "@/components/history-tab";
 import FileUpload from "@/components/file-upload";
 import { useAuth } from "@/context/AuthContext";
-import { Bell, Settings, Shield, Lock, CheckCircle, LogOut, User } from "lucide-react";
+import { Settings, Shield, Lock, CheckCircle, LogOut, User, Wifi, WifiOff, Download } from "lucide-react";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"translate" | "dashboard" | "history" | "upload">("translate");
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isPWAInstalled, setIsPWAInstalled] = useState(false);
+
+  // Detectar estado de conexión
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Detectar si la PWA está instalada
+  useEffect(() => {
+    // Verificar si la app se está ejecutando como PWA instalada
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+      || (window.navigator as any).standalone 
+      || document.referrer.includes('android-app://');
+    
+    setIsPWAInstalled(isStandalone);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -41,15 +67,6 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center space-x-1 sm:space-x-2">
-              {user && (
-                <button 
-                  className="p-2.5 sm:p-3 text-muted-foreground hover:text-foreground active:bg-muted/50 rounded-lg transition-colors touch-manipulation"
-                  data-testid="button-notifications"
-                  aria-label="Notificaciones"
-                >
-                  <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
-                </button>
-              )}
               {user ? (
                 <button 
                   className="p-2.5 sm:p-3 text-muted-foreground hover:text-destructive active:bg-muted/50 rounded-lg transition-colors touch-manipulation"
@@ -136,12 +153,38 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="flex-1 max-w-md mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 mobile-scroll pb-safe">
-        {/* Security Badge */}
-        <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 sm:p-4" data-testid="security-badge">
-          <div className="flex items-center space-x-2">
-            <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-accent flex-shrink-0" />
-            <span className="text-xs sm:text-sm font-medium text-accent-foreground">Conexión Segura HIPAA</span>
-            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-accent ml-auto flex-shrink-0" />
+        {/* Status Indicators */}
+        <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 sm:p-4" data-testid="status-indicators">
+          <div className="flex items-center justify-between">
+            {/* PWA Installation Status */}
+            <div className="flex items-center space-x-2" title={isPWAInstalled ? "App instalada" : "App no instalada"}>
+              {isPWAInstalled ? (
+                <>
+                  <Download className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium text-accent-foreground">App Instalada</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium text-muted-foreground">Usar desde navegador</span>
+                </>
+              )}
+            </div>
+            
+            {/* Connection Status */}
+            <div className="flex items-center space-x-2" title={isOnline ? "Conectado a internet" : "Sin conexión a internet"}>
+              {isOnline ? (
+                <>
+                  <Wifi className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium text-accent-foreground">En línea</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-4 h-4 sm:w-5 sm:h-5 text-destructive flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium text-destructive">Sin conexión</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 

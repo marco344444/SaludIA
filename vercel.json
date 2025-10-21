@@ -1,5 +1,6 @@
 {
   "version": 2,
+<<<<<<< HEAD
   "builds": [
     {
       "src": "package.json",
@@ -14,6 +15,25 @@
     {
       "src": "/(.*)",
       "dest": "/client/index.html"
+=======
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": null,
+  "outputDirectory": "dist",
+  "routes": [
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+>>>>>>> e9ad14a (feat: Mejoras mayores en análisis CSV, indicadores PWA y guía APK)
     }
   ],
   "env": {

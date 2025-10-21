@@ -200,11 +200,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get health record (assuming single patient for MVP)
-  app.get("/api/health-record", async (req, res) => {
+  // Get or create health record (user-specific if logged in)
+  app.get("/api/health-record", optionalAuth, async (req: AuthRequest, res) => {
     try {
+      // If user authenticated, return (or create) a record tied to that user
+      if (req.userId) {
+        let record = await (storage as any).getHealthRecordByUser(req.userId);
+        if (!record) {
+          record = await storage.createHealthRecord({
+            userId: req.userId as any,
+            patientName: req.user?.fullName || "Paciente",
+            age: null as any,
+            conditions: [],
+            vitalSigns: null as any,
+            medications: [],
+          } as any);
+        }
+        return res.json(record);
+      }
+
+      // Guest: fallback to the first sample record
       const records = Array.from((storage as any).healthRecords.values());
-      const healthRecord = records[0]; // Get first (sample) record
+      const healthRecord = records[0];
       if (!healthRecord) {
         return res.status(404).json({ message: "Health record not found" });
       }
@@ -261,9 +278,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       } else if (fileType === '.csv' || req.file.mimetype.includes('csv')) {
-        const csvContent = fs.readFileSync(filePath, 'utf8');
-        const parsed = Papa.parse(csvContent, { header: true });
-        fileContent = JSON.stringify(parsed.data, null, 2);
+        // Leer CSV como texto plano sin procesar para mantener el formato original
+        fileContent = fs.readFileSync(filePath, 'utf8');
       } else {
         // Cleanup uploaded file
         fs.unlinkSync(filePath);
