@@ -6,6 +6,22 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Configurar Content-Type correcto para archivos estáticos (especialmente iconos PWA)
+app.use((req, res, next) => {
+  if (req.path.endsWith('.png')) {
+    res.type('image/png');
+  } else if (req.path.endsWith('.jpg') || req.path.endsWith('.jpeg')) {
+    res.type('image/jpeg');
+  } else if (req.path.endsWith('.svg')) {
+    res.type('image/svg+xml');
+  } else if (req.path.endsWith('.webp')) {
+    res.type('image/webp');
+  } else if (req.path.endsWith('.json')) {
+    res.type('application/json');
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
