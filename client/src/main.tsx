@@ -2,10 +2,16 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
+// 🔥 VERSION 3.0 - HISTORICO DE IMC - 21 OCT 2025 23:33 🔥
+console.log("🚀🚀🚀 MAIN.TSX VERSION 3.0 CARGADO 🚀🚀🚀");
+console.log("✅ Histórico de IMC implementado");
+console.log("📅 Timestamp:", new Date().toISOString());
+
 createRoot(document.getElementById("root")!).render(<App />);
 
+// SERVICE WORKER DESACTIVADO TEMPORALMENTE PARA DESARROLLO
 // Registrar Service Worker para PWA
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if (false && 'serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/service-worker.js')

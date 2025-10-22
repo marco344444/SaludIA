@@ -1,5 +1,5 @@
 // Service Worker para MediTranslate AI - PWA
-const CACHE_NAME = 'meditranslate-v1';
+const CACHE_NAME = 'meditranslate-v2-updated';
 const OFFLINE_URL = '/';
 
 // Recursos estáticos para cachear

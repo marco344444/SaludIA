@@ -11,6 +11,17 @@ export const users = pgTable("users", {
   fullName: text("full_name").notNull(),
   role: varchar("role", { length: 50 }).default("patient"), // 'doctor', 'patient', 'admin'
   isVerified: boolean("is_verified").default(false),
+  // Privacy and terms acceptance
+  acceptedPrivacyPolicy: boolean("accepted_privacy_policy").default(false).notNull(),
+  acceptedTerms: boolean("accepted_terms").default(false).notNull(),
+  privacyPolicyAcceptedAt: timestamp("privacy_policy_accepted_at"),
+  // Health profile data
+  age: integer("age"),
+  weight: integer("weight"), // in kg
+  height: integer("height"), // in cm
+  conditions: jsonb("conditions").$type<string[]>().default([]),
+  medications: jsonb("medications").$type<string[]>().default([]),
+  // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   lastLogin: timestamp("last_login"),
@@ -35,6 +46,8 @@ export const healthRecords = pgTable("health_records", {
     bloodPressure?: { systolic: number; diastolic: number; date: string };
     glucose?: { value: number; unit: string; date: string };
     weight?: { value: number; unit: string; date: string };
+    height?: { value: number; unit: string; date: string };
+    weightHistory?: Array<{ value: number; unit: string; date: string; bmi?: number }>;
   }>(),
   medications: jsonb("medications").$type<{
     name: string;
@@ -77,12 +90,24 @@ export const insertUserSchema = createInsertSchema(users, {
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
   fullName: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   role: z.enum(["doctor", "patient", "admin"]).optional(),
+  acceptedPrivacyPolicy: z.boolean().refine(val => val === true, {
+    message: "Debes aceptar la política de privacidad",
+  }),
+  acceptedTerms: z.boolean().refine(val => val === true, {
+    message: "Debes aceptar los términos y condiciones",
+  }),
+  age: z.number().min(0).max(150).optional().nullable(),
+  weight: z.number().min(1).max(500).optional().nullable(),
+  height: z.number().min(50).max(300).optional().nullable(),
+  conditions: z.array(z.string()).optional(),
+  medications: z.array(z.string()).optional(),
 }).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   lastLogin: true,
   isVerified: true,
+  privacyPolicyAcceptedAt: true,
 });
 
 export const loginSchema = z.object({

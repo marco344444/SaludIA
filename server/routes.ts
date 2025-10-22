@@ -46,11 +46,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Hash password
       const hashedPassword = await bcrypt.hash(validatedData.password, 10);
       
-      // Create user
+      // Create user (privacyPolicyAcceptedAt is set automatically in storage)
       const user = await storage.createUser({
         ...validatedData,
         password: hashedPassword,
       });
+
+      // If user provided health data, create/update health record
+      if (validatedData.age || validatedData.weight || validatedData.height || 
+          validatedData.conditions?.length || validatedData.medications?.length) {
+        
+        const vitalSigns: any = {};
+        
+        if (validatedData.weight) {
+          vitalSigns.weight = { 
+            value: validatedData.weight, 
+            unit: "kg", 
+            date: new Date().toISOString() 
+          };
+        }
+        
+        if (validatedData.height) {
+          vitalSigns.height = { 
+            value: validatedData.height, 
+            unit: "cm", 
+            date: new Date().toISOString() 
+          };
+        }
+        
+        await storage.createHealthRecord({
+          userId: user.id as any,
+          patientName: user.fullName,
+          age: validatedData.age || null as any,
+          conditions: validatedData.conditions || [],
+          vitalSigns: Object.keys(vitalSigns).length > 0 ? vitalSigns : null as any,
+          medications: validatedData.medications?.map(med => ({
+            name: med,
+            dosage: "",
+            instructions: "",
+            taken: false,
+            time: new Date().toISOString(),
+          })) || [],
+        } as any);
+      }
 
       // Generate token
       const token = generateToken({
@@ -207,6 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.userId) {
         let record = await (storage as any).getHealthRecordByUser(req.userId);
         if (!record) {
+          // Create empty health record for this user
           record = await storage.createHealthRecord({
             userId: req.userId as any,
             patientName: req.user?.fullName || "Paciente",
@@ -219,13 +258,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(record);
       }
 
-      // Guest: fallback to the first sample record
-      const records = Array.from((storage as any).healthRecords.values());
-      const healthRecord = records[0];
-      if (!healthRecord) {
-        return res.status(404).json({ message: "Health record not found" });
-      }
-      res.json(healthRecord);
+      // Guest: create a temporary health record (not saved, just for demo)
+      const tempRecord = {
+        id: "temp-guest-record",
+        userId: null,
+        patientName: "Usuario Invitado",
+        age: null,
+        conditions: [],
+        vitalSigns: null,
+        medications: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      return res.json(tempRecord);
     } catch (error) {
       console.error("Error fetching health record:", error);
       res.status(500).json({ message: "Failed to fetch health record" });
